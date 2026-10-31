@@ -11,5 +11,15 @@ export default function Chip({
   k: ChipKind;
   children: ReactNode;
 }) {
-  return <span className={`chip c-${k}`}>{children}</span>;
+  const kindClass = {
+    draft: "draft",
+    wait: "pending",
+    ok: "approved",
+    fix: "fix-requested",
+    star: "featured",
+    info: "info",
+    line: "outline",
+  }[k];
+
+  return <span className={`status-chip status-chip--${kindClass}`}>{children}</span>;
 }

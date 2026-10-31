@@ -5,6 +5,7 @@ import Rules from "./pages/Rules.tsx";
 import Join from "./pages/Join.tsx";
 import Certificate from "./pages/Certificate.tsx";
 import Library from "./pages/Library.tsx";
+import LibraryNotes from "./pages/LibraryNotes.tsx";
 
 
 function ScrollToTop() {
@@ -17,11 +18,11 @@ function ScrollToTop() {
 
 export default function App() {
   return (
-    <div className="fr fr-p">
+    <div className="app-shell app-shell--full">
       <ScrollToTop />
       <Routes>
         <Route path="/library" element={<Library />} />
-        {/* <Route path="/library/notes" element={<LibraryNotes />} /> */}
+        <Route path="/library/notes" element={<LibraryNotes />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/rules" element={<Rules />} />
         <Route path="/join" element={<Join />} />

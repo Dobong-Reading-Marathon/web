@@ -14,7 +14,7 @@ export default function Cover({ ch, l = false }: Props) {
   const [bg, fg] = COVERS[ch] ?? ["#E9ECEA", "#38443F"];
   return (
     <span
-      className={`cv${l ? " l" : ""}`}
+      className={`book-cover${l ? " is-large" : ""}`}
       style={{ background: bg, color: fg }}
     >
       {ch}

@@ -14,32 +14,32 @@ const NAV: { key: UserNav; label: string; to: string; icon: IconName }[] = [
 
 function UserHeader({ active }: { active: UserNav }) {
   return (
-    <header className="hd">
-      <Link className="brand" to="/">
-        <img src={logo} alt="도봉도서관 로고" className="logo" />
+    <header className="site-header">
+      <Link className="site-brand" to="/">
+        <img src={logo} alt="도봉도서관 로고" className="brand-logo" />
       </Link>
-      <nav className="nav" aria-label="주요 메뉴">
+      <nav className="primary-navigation" aria-label="주요 메뉴">
         {NAV.map((n) => (
-          <Link key={n.key} to={n.to} className={n.key === active ? "on" : ""}>
+          <Link key={n.key} to={n.to} className={n.key === active ? "is-active" : ""}>
             <Icon n={n.icon} s={18} />
             {n.label}
           </Link>
         ))}
-        <Link to="/rules" className={active === "rules" ? "on" : ""}>
+        <Link to="/rules" className={active === "rules" ? "is-active" : ""}>
           대회 요강
         </Link>
       </nav>
-      <div className="hr">
-        <Link className="btn p s" to="/records/new">
+      <div className="header-actions">
+        <Link className="button button--primary is-small" to="/records/new">
           <Icon n="pen" s={16} />
           기록 쓰기
         </Link>
-        <Link className="bellb" to="/notifications" aria-label="알림 2건">
+        <Link className="icon-button" to="/notifications" aria-label="알림 2건">
           <Icon n="bell" s={20} />
           <b>2</b>
         </Link>
-        <span className="who">
-          <span className="av">소</span>소연님
+        <span className="profile-name">
+          <span className="avatar">소</span>소연님
         </span>
       </div>
     </header>
@@ -48,11 +48,11 @@ function UserHeader({ active }: { active: UserNav }) {
 
 export function PlainHeader() {
   return (
-    <header className="hd">
-      <Link className="brand" to="/">
-        <img src={logo} alt="도봉도서관 로고" className="logo" />
+    <header className="site-header">
+      <Link className="site-brand" to="/">
+        <img src={logo} alt="도봉도서관 로고" className="brand-logo" />
       </Link>
-      <nav className="nav" aria-label="주요 메뉴">
+      <nav className="primary-navigation" aria-label="주요 메뉴">
         <span style={{ flex: 1 }} />
         <Link to="/rules">대회 요강</Link>
       </nav>
@@ -62,7 +62,7 @@ export function PlainHeader() {
 
 export function UserFooter() {
   return (
-    <footer className="ftr">
+    <footer className="site-footer">
       <span>도봉도서관 독서마라톤 · 문의는 도서관 담당자에게</span>
       <Link to="/signup">개인정보 처리방침 전문 보기</Link>
     </footer>
@@ -71,16 +71,16 @@ export function UserFooter() {
 
 export function TabBar({ active }: { active: UserNav }) {
   const tab = (key: UserNav, label: string, to: string, icon: IconName) => (
-    <Link key={key} to={to} className={key === active ? "on" : ""}>
+    <Link key={key} to={to} className={key === active ? "is-active" : ""}>
       <Icon n={icon} s={22} />
       {label}
     </Link>
   );
   return (
-    <nav className="tabbar" aria-label="하단 메뉴">
+    <nav className="mobile-tab-bar" aria-label="하단 메뉴">
       {tab("home", "홈", "/", "home")}
       {tab("lib", "내서재", "/library", "book")}
-      <Link className="wr" to="/records/new" aria-label="기록 쓰기">
+      <Link className="quick-write-button" to="/records/new" aria-label="기록 쓰기">
         <Icon n="pen" s={24} />
       </Link>
       {tab("cal", "달력", "/calendar", "cal")}
@@ -96,7 +96,7 @@ export default function UserLayout({ active = "", children }: Props) {
   return (
     <>
       <UserHeader active={active} />
-      <div className="pg">{children}</div>
+      <div className="page-content">{children}</div>
       <UserFooter />
       <TabBar active={active} />
     </>
@@ -108,7 +108,7 @@ export function PlainLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <PlainHeader />
-      <div className="pg">{children}</div>
+      <div className="page-content">{children}</div>
       <UserFooter />
       <TabBar active="" />
     </>

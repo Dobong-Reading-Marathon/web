@@ -16,13 +16,13 @@ export default function Field({
   typ = "text",
 }: Props) {
   return (
-    <label className="fld">
+    <label className="form-field">
       <span>
         {label}
         {req && <em>필수</em>}
         {opt && <em>선택</em>}
       </span>
-      <input className="in" type={typ} placeholder={ph} defaultValue={val} />
+      <input className="text-input" type={typ} placeholder={ph} defaultValue={val} />
     </label>
   );
 }

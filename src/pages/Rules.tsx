@@ -8,31 +8,31 @@ import UserLayout from "../components/UserLayout.tsx";
 export default function Rules() {
   return (
     <UserLayout active="rules">
-      <section className="sec t">
-        <div className="pb">
+      <section className="content-section is-top">
+        <div className="page-banner">
           <Tower w={380} />
-          <div className="top">
+          <div className="page-heading-row">
             <div>
-              <h1 className="h1">대회 요강</h1>
-              <p className="lead">
+              <h1 className="page-title">대회 요강</h1>
+              <p className="page-description">
                 운영 기간과 코스 기준, 작성 요령을 한눈에 확인해요.
               </p>
             </div>
-            <div className="acts">
-              <Link to="/join" className="btn p">
+            <div className="action-group">
+              <Link to="/join" className="button button--primary">
                 코스 선택 · 참가 신청
                 <Icon n="arrow" s={16} sw={1.8} />
               </Link>
             </div>
           </div>
         </div>
-        <div className="g2">
-          <div className="cd ">
-            <div className="cdh">
-              <h2 className="h3">대회 개요</h2>
+        <div className="grid--two-columns">
+          <div className="content-card ">
+            <div className="content-card-header">
+              <h2 className="card-title">대회 개요</h2>
             </div>
             <div
-              className="rw"
+              className="data-row"
               style={{
                 justifyContent: "space-between",
                 alignItems: "flex-start",
@@ -45,7 +45,7 @@ export default function Rules() {
               </span>
             </div>
             <div
-              className="rw"
+              className="data-row"
               style={{
                 justifyContent: "space-between",
                 alignItems: "flex-start",
@@ -58,7 +58,7 @@ export default function Rules() {
               </span>
             </div>
             <div
-              className="rw"
+              className="data-row"
               style={{
                 justifyContent: "space-between",
                 alignItems: "flex-start",
@@ -71,7 +71,7 @@ export default function Rules() {
               </span>
             </div>
             <div
-              className="rw"
+              className="data-row"
               style={{
                 justifyContent: "space-between",
                 alignItems: "flex-start",
@@ -85,35 +85,35 @@ export default function Rules() {
               </span>
             </div>
           </div>
-          <div className="cd m">
-            <div className="cdh">
-              <h2 className="h3">작성 요령</h2>
+          <div className="content-card content-card--mint">
+            <div className="content-card-header">
+              <h2 className="card-title">작성 요령</h2>
             </div>
             <ul>
-              <li className="rw" style={{ alignItems: "flex-start" }}>
-                <span className="stn" style={{ background: "#D5E8DD" }}>
+              <li className="data-row" style={{ alignItems: "flex-start" }}>
+                <span className="step-number" style={{ background: "#D5E8DD" }}>
                   1
                 </span>
                 <span>
                   읽은 쪽 범위를 기록해요. 한 책에 여러 번 남길 수 있어요.
                 </span>
               </li>
-              <li className="rw" style={{ alignItems: "flex-start" }}>
-                <span className="stn" style={{ background: "#D5E8DD" }}>
+              <li className="data-row" style={{ alignItems: "flex-start" }}>
+                <span className="step-number" style={{ background: "#D5E8DD" }}>
                   2
                 </span>
                 <span>
                   서평은 500자 이상 써요. 글자 수는 실시간으로 세어 줘요.
                 </span>
               </li>
-              <li className="rw" style={{ alignItems: "flex-start" }}>
-                <span className="stn" style={{ background: "#D5E8DD" }}>
+              <li className="data-row" style={{ alignItems: "flex-start" }}>
+                <span className="step-number" style={{ background: "#D5E8DD" }}>
                   3
                 </span>
                 <span>도봉도서관 소장도서만 대출 권수에 반영돼요.</span>
               </li>
-              <li className="rw" style={{ alignItems: "flex-start" }}>
-                <span className="stn" style={{ background: "#D5E8DD" }}>
+              <li className="data-row" style={{ alignItems: "flex-start" }}>
+                <span className="step-number" style={{ background: "#D5E8DD" }}>
                   4
                 </span>
                 <span>글만 저장돼요. 이미지는 올릴 수 없어요.</span>
@@ -121,12 +121,12 @@ export default function Rules() {
             </ul>
           </div>
         </div>
-        <div className="cd ">
-          <div className="cdh">
-            <h2 className="h3">코스별 기준</h2>
+        <div className="content-card ">
+          <div className="content-card-header">
+            <h2 className="card-title">코스별 기준</h2>
             <Chip k="line">기준 수치는 예시예요</Chip>
           </div>
-          <div className="tw">
+          <div className="table-wrapper">
             <table>
               <thead>
                 <tr>
@@ -141,49 +141,49 @@ export default function Rules() {
                   <td>
                     <b>3km</b>
                   </td>
-                  <td className="num">3,000쪽</td>
-                  <td className="num">5권</td>
-                  <td className="num">서평 2편</td>
+                  <td className="numeric-value">3,000쪽</td>
+                  <td className="numeric-value">5권</td>
+                  <td className="numeric-value">서평 2편</td>
                 </tr>
                 <tr>
                   <td>
                     <b>5km</b>
                   </td>
-                  <td className="num">5,000쪽</td>
-                  <td className="num">8권</td>
-                  <td className="num">서평 3편</td>
+                  <td className="numeric-value">5,000쪽</td>
+                  <td className="numeric-value">8권</td>
+                  <td className="numeric-value">서평 3편</td>
                 </tr>
                 <tr>
                   <td>
                     <b>10km</b>
                   </td>
-                  <td className="num">10,000쪽</td>
-                  <td className="num">15권</td>
-                  <td className="num">서평 6편</td>
+                  <td className="numeric-value">10,000쪽</td>
+                  <td className="numeric-value">15권</td>
+                  <td className="numeric-value">서평 6편</td>
                 </tr>
                 <tr>
                   <td>
                     <b>하프 · 21km</b>
                   </td>
-                  <td className="num">21,000쪽</td>
-                  <td className="num">30권</td>
-                  <td className="num">서평 12편</td>
+                  <td className="numeric-value">21,000쪽</td>
+                  <td className="numeric-value">30권</td>
+                  <td className="numeric-value">서평 12편</td>
                 </tr>
                 <tr>
                   <td>
                     <b>풀 · 42km</b>
                   </td>
-                  <td className="num">42,000쪽</td>
-                  <td className="num">60권</td>
-                  <td className="num">서평 24편</td>
+                  <td className="numeric-value">42,000쪽</td>
+                  <td className="numeric-value">60권</td>
+                  <td className="numeric-value">서평 24편</td>
                 </tr>
                 <tr>
                   <td>
                     <b>가족 풀코스</b>
                   </td>
-                  <td className="num">42,000쪽</td>
-                  <td className="num">60권</td>
-                  <td className="num">서평 24편</td>
+                  <td className="numeric-value">42,000쪽</td>
+                  <td className="numeric-value">60권</td>
+                  <td className="numeric-value">서평 24편</td>
                 </tr>
               </tbody>
             </table>

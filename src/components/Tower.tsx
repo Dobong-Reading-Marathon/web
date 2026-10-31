@@ -28,7 +28,7 @@ export default function Tower({ w = 420 }: Props) {
   );
   return (
     <svg
-      className="art"
+      className="decorative-illustration"
       viewBox="0 0 520 420"
       fill="none"
       aria-hidden="true"
