@@ -6,6 +6,7 @@ const COVERS: Record<string, [string, string]> = {
   어: ["#DDE9F5", "#1D4E89"],
   모: ["#F7EBC8", "#7A5400"],
 };
+{/*변수값으로 변경, 랜덤으로 색 넣기*/}
 
 type Props = { ch: string; l?: boolean };
 
