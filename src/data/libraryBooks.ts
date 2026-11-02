@@ -10,6 +10,7 @@ export type LibraryBook = {
   tags: string[];
 };
 
+{/*변수값으로 변경*/}
 export const libraryBooks: LibraryBook[] = [
   { title: "불편한 편의점", author: "김호연", initial: "불", status: "보완요청", kind: "fix-requested", progress: 97, pages: "260 / 268쪽", note: "상세 보는 중", tags: ["소장도서"] },
   { title: "데미안", author: "헤르만 헤세", initial: "데", status: "임시저장", kind: "draft", progress: 56, pages: "140 / 248쪽", note: "일괄 제출에 포함", tags: ["소장도서"] },

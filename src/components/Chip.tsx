@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export type ChipKind =
   "draft" | "wait" | "ok" | "fix" | "star" | "info" | "line";
-
+{/*변수값으로 변경*/}
 /** 상태 칩 (임시저장 / 심사 대기 / 승인 / 보완요청 …) */
 export default function Chip({
   k,

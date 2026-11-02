@@ -52,22 +52,22 @@ export default function Calendar() {
           <div className="content-card content-card--mint content-card--compact">
             <div className="metric">
               <span>이달의 독서 일수</span>
-              <b className="numeric-value">7일</b>
-              <span>10월 12일까지 12일 중</span>
+              <b className="numeric-value">7일</b> {/*변수값으로 변경*/}
+              <span>10월 12일까지 12일 중</span>  {/*변수값으로 변경*/}
             </div>
           </div>
           <div className="content-card content-card--mint content-card--compact">
             <div className="metric">
               <span>이달에 읽은 책</span>
-              <b className="numeric-value">5권</b>
-              <span>완독 3권 · 읽는 중 2권</span>
+              <b className="numeric-value">5권</b> {/*변수값으로 변경*/}
+              <span>완독 3권 · 읽는 중 2권</span>  {/*변경값으로 변경*/}
             </div>
           </div>
           <div className="content-card content-card--mint content-card--compact">
             <div className="metric">
               <span>이달의 쪽수</span>
-              <b className="numeric-value">937쪽</b>
-              <span>= 0.94km</span>
+              <b className="numeric-value">937쪽</b> {/*변수값으로 변경*/}
+              <span>= 0.94km</span> {/*변수값으로 변경*/}
             </div>
           </div>
         </div>
@@ -114,6 +114,7 @@ export default function Calendar() {
                 );
               })}
             </div>
+            {/*변수값으로 변경???*/}
             <div className="chip-list" style={{ alignItems: "center" }}>
               <span className="text-small">
                 <b className="status-indicator--draft">●</b> 임시저장
@@ -144,8 +145,8 @@ export default function Calendar() {
               >
                 <Cover ch="데" />
                 <div>
-                  <h3 className="card-title">데미안</h3>
-                  <p className="text-small text-muted">헤르만 헤세 · 읽은 쪽 1–140</p>
+                  <h3 className="card-title">데미안</h3> {/*변수값으로 변경*/}
+                  <p className="text-small text-muted">헤르만 헤세 · 읽은 쪽 1–140</p> {/*변수값으로 변경*/}
                 </div>
               </div>
               <div>
@@ -168,7 +169,7 @@ export default function Calendar() {
             </div>
             <div className="content-card content-card--mint">
               <div className="content-card-header">
-                <h2 className="card-title">월별 독서 요약</h2>
+                <h2 className="card-title">월별 독서 요약</h2> {/*변수값으로 변경*/}
               </div>
               <div className="data-row" style={{ justifyContent: "space-between" }}>
                 <b>8월</b>

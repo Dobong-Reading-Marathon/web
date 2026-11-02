@@ -110,8 +110,8 @@ export default function Library() {
               <div className="progress-bar">
                 <i style={{ width: `${book.progress}%` }}></i>
               </div>
-              <p className="text-small text-muted">읽은 쪽 {book.pages}</p>
-              <p className="text-extra-small text-muted">{book.note}</p>
+              <p className="text-small text-muted">읽은 쪽 {book.pages}</p> {/*변수값으로 변경해야 하는지 확인 필요*/}
+              <p className="text-extra-small text-muted">{book.note}</p> {/*변수값으로 변경해야 하는지 확인 필요*/}
             </Link>
           ))}
           {filteredBooks.length === 0 && <p className="text-muted">해당 상태의 도서가 없어요.</p>}

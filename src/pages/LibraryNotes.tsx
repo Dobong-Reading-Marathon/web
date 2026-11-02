@@ -24,7 +24,7 @@ type ReadingRecord = {
   review: string;
   reviewWords: number;
 };
-
+{/*변수값으로 변경*/}
 const initialRecords: ReadingRecord[] = [
   { id: "damian", date: "10월 11일", title: "데미안", initial: "데", author: "헤르만 헤세", pages: "1–140쪽", summary: "마음에 드는 글귀 1개", status: "임시저장", chipKind: "draft", totalPages: 248, ownership: "소장도서", readDate: "10월 11일", comment: "", quote: "[글귀 본문]", review: "아직 쓰지 않았어요.", reviewWords: 0 },
   { id: "farewell", date: "10월 10일", title: "작별하지 않는다", initial: "작", author: "한강", pages: "1–210쪽", summary: "서평 작성", status: "심사 대기", chipKind: "wait", totalPages: 332, ownership: "소장도서", readDate: "10월 10일", comment: "", quote: "", review: "서평 검토 중", reviewWords: 412 },
@@ -117,7 +117,7 @@ export default function LibraryNotes() {
               {selectedRecord.comment && (
                 <div className="notice notice--danger reviewer-comment">
                   <Icon n="bell" s={18} />
-                  <div><b>사서 코멘트 · 10월 11일</b><br />{selectedRecord.comment}</div>
+                  <div><b>사서 코멘트 · 10월 11일</b><br />{selectedRecord.comment}</div> {/*변수값으로 변경*/}
                 </div>
               )}
               <div className="record-detail-section">

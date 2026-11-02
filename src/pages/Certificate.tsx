@@ -59,10 +59,10 @@ export default function Certificate() {
             <div className="content-card content-card--compact" style={{ gap: "10px" }}>
               <div className="space-between-row">
                 <span className="text-muted text-bold">쪽수</span>
-                <b className="numeric-value">59%</b>
+                <b className="numeric-value">59%</b> {/*변수값으로 변경*/}
               </div>
               <b className="numeric-value" style={{ fontSize: "26px" }}>
-                12,450 / 21,000쪽
+                12,450 / 21,000쪽 {/*변수값으로 변경*/}
               </b>
               <div className="progress-bar">
                 <i style={{ width: "59%" }}></i>
@@ -71,10 +71,10 @@ export default function Certificate() {
             <div className="content-card content-card--compact" style={{ gap: "10px" }}>
               <div className="space-between-row">
                 <span className="text-muted text-bold">권수</span>
-                <b className="numeric-value">60%</b>
+                <b className="numeric-value">60%</b> {/*변수값으로 변경*/}
               </div>
               <b className="numeric-value" style={{ fontSize: "26px" }}>
-                18 / 30권
+                18 / 30권 {/*변수값으로 변경*/}
               </b>
               <div className="progress-bar">
                 <i style={{ width: "60%" }}></i>
@@ -83,10 +83,10 @@ export default function Certificate() {
             <div className="content-card content-card--compact" style={{ gap: "10px" }}>
               <div className="space-between-row">
                 <span className="text-muted text-bold">서평</span>
-                <b className="numeric-value">58%</b>
+                <b className="numeric-value">58%</b> {/*변수값으로 변경*/}
               </div>
               <b className="numeric-value" style={{ fontSize: "26px" }}>
-                7 / 12편
+                7 / 12편 {/*변수값으로 변경*/}
               </b>
               <div className="progress-bar">
                 <i style={{ width: "58%" }}></i>

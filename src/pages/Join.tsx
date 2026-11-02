@@ -6,6 +6,7 @@ import Icon from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
 //피그마12
+{/*완주요강에 맞춰 변경*/}
 const courses = [
   { id: "3km", name: "3km", criteria: "3,000쪽 · 5권 · 서평 2편", family: false },
   { id: "5km", name: "5km", criteria: "5,000쪽 · 8권 · 서평 3편", family: false },
@@ -112,7 +113,7 @@ export default function Join() {
               </div>
               <div className="data-row" style={{ justifyContent: "space-between" }}>
                 <span className="text-muted">회차</span>
-                <b>2026 회차</b>
+                <b>2026 회차</b> {/*변수값으로 변경*/}
               </div>
               <div className="data-row" style={{ justifyContent: "space-between" }}>
                 <span className="text-muted">코스</span>
