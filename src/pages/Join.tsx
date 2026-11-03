@@ -6,7 +6,7 @@ import Icon from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
 import { formatCourseCriteria, formatDate, useCurrentRound } from "../api/currentRound.ts";
-//피그마12
+//피그마12_참가신청
 
 export default function Join() {
   const { round, loading, error } = useCurrentRound();

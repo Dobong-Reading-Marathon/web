@@ -5,7 +5,7 @@ import Tower from "../components/Tower.tsx";
 import UserLayout from "../components/UserLayout.tsx";
 import { formatDate, useCurrentRound } from "../api/currentRound.ts";
 
-//피그마11
+//피그마11_대회요강
 export default function Rules() {
   const { round, loading, error } = useCurrentRound();
 
