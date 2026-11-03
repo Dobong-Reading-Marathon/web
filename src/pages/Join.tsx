@@ -1,24 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Chip from "../components/Chip";
 import Field from "../components/Field.tsx";
 import Icon from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
+import { formatCourseCriteria, formatDate, useCurrentRound } from "../api/currentRound.ts";
 //피그마12
-{/*완주요강에 맞춰 변경*/}
-const courses = [
-  { id: "3km", name: "3km", criteria: "3,000쪽 · 5권 · 서평 2편", family: false },
-  { id: "5km", name: "5km", criteria: "5,000쪽 · 8권 · 서평 3편", family: false },
-  { id: "10km", name: "10km", criteria: "10,000쪽 · 15권 · 서평 6편", family: false },
-  { id: "half", name: "하프 · 21km", criteria: "21,000쪽 · 30권 · 서평 12편", family: false },
-  { id: "full", name: "풀 · 42km", criteria: "42,000쪽 · 60권 · 서평 24편", family: false },
-  { id: "family", name: "가족 풀코스", criteria: "42,000쪽 · 60권 · 서평 24편 · 가족 합산", family: true },
-];
 
 export default function Join() {
-  const [selectedCourseId, setSelectedCourseId] = useState("half");
-  const selectedCourse = courses.find((course) => course.id === selectedCourseId) ?? courses[3];
+  const { round, loading, error } = useCurrentRound();
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
+  const courses = round?.courses ?? [];
+  const selectedCourse = courses.find((course) => course.id === selectedCourseId) ?? null;
+
+  useEffect(() => {
+    if (selectedCourseId === null && courses.length > 0) setSelectedCourseId(courses[0].id);
+  }, [courses, selectedCourseId]);
 
   return (
     <UserLayout active="">
@@ -38,6 +36,9 @@ export default function Join() {
             <div className="action-group"></div>
           </div>
         </div>
+        {loading && <p className="text-small text-muted" role="status">회차와 코스 정보를 불러오는 중입니다.</p>}
+        {error && <p className="text-small" role="alert">{error}</p>}
+        {!loading && !error && courses.length === 0 && <p className="text-small" role="status">현재 회차에 등록된 코스가 없습니다.</p>}
         <div className="grid--three-columns">
           {courses.map((course) => (
             <label
@@ -45,7 +46,7 @@ export default function Join() {
               className={`content-card content-card--compact course-option${selectedCourseId === course.id ? " is-selected" : ""}`}
             >
               <span className="space-between-row">
-                <b className="card-title">{course.name}</b>
+                <b className="card-title">{course.name}{course.family ? " (가족)" : ""}</b>
                 <input
                   type="radio"
                   name="course"
@@ -56,16 +57,16 @@ export default function Join() {
                   aria-label={course.name}
                 />
               </span>
-              <span className="text-small text-muted">{course.criteria}</span>
+              <span className="text-small text-muted">{formatCourseCriteria(course)}{course.family ? " · 가족 합산" : ""}</span>
               {selectedCourseId === course.id && <Chip k="ok">현재 선택</Chip>}
             </label>
           ))}
         </div>
         <div className="grid--two-columns" style={{ alignItems: "start" }}>
-          <div className="content-card content-card--mint">
+          {selectedCourse?.family && <div className="content-card content-card--mint">
             <div className="content-card-header">
-              <h2 className="card-title">가족 풀코스 · 구성원 명단</h2>
-              <Chip k="line">가족 풀코스를 고르면 열려요</Chip>
+              <h2 className="card-title">{selectedCourse.name} · 구성원 명단</h2>
+              <Chip k="line">가족 코스를 고르면 열려요</Chip>
             </div>
             <p className="text-small text-muted">
               가족 구성원을 등록하면 기록이 가족 합산으로 집계돼요. 아동도서
@@ -83,7 +84,7 @@ export default function Join() {
               <Icon n="plus" s={16} sw={1.8} />
               구성원 추가
             </Link>
-          </div>
+          </div>}
           <div
             style={{ display: "flex", flexDirection: "column", gap: "24px" }}
           >
@@ -103,7 +104,7 @@ export default function Join() {
                 <div>
                   <span className="step-number">2</span>
                   <b>코스 선택</b>
-                  <span>{selectedCourse.name}</span>
+                  <span>{selectedCourse?.name ?? (loading ? "불러오는 중…" : "선택된 코스 없음")}</span>
                 </div>
                 <div className="is-active">
                   <span className="step-number">3</span>
@@ -113,23 +114,26 @@ export default function Join() {
               </div>
               <div className="data-row" style={{ justifyContent: "space-between" }}>
                 <span className="text-muted">회차</span>
-                <b>2026 회차</b> {/*변수값으로 변경*/}
+                <b>{round ? `${round.year}년 ${round.roundNo}회차` : loading ? "불러오는 중…" : "-"}</b>
               </div>
               <div className="data-row" style={{ justifyContent: "space-between" }}>
                 <span className="text-muted">코스</span>
-                <b>{selectedCourse.name}</b>
+                <b>{selectedCourse?.name ?? "-"}</b>
               </div>
               <div className="data-row" style={{ justifyContent: "space-between" }}>
                 <span className="text-muted">완주 기준</span>
-                <b>{selectedCourse.criteria}</b>
+                <b>{selectedCourse ? formatCourseCriteria(selectedCourse) : "-"}</b>
               </div>
               <div className="data-row" style={{ justifyContent: "space-between" }}>
                 <span className="text-muted">가족 구성원</span>
-                <b>{selectedCourse.family ? "가족 구성원 등록 필요" : "해당 없음"}</b>
+                <b>{selectedCourse?.family ? "가족 구성원 등록 필요" : selectedCourse ? "해당 없음" : "-"}</b>
               </div>
-              <Link to="/" className="button button--primary button--extra-large is-large">
-                참가 신청하기
-              </Link>
+              {round?.applyOpen ? (
+                <Link to="/" className="button button--primary button--extra-large is-large">참가 신청하기</Link>
+              ) : (
+                <button type="button" className="button button--primary button--extra-large is-large" disabled>참가 신청 기간이 아닙니다</button>
+              )}
+              {round && <p className="text-extra-small text-muted">신청 기간: {formatDate(round.applyStart)} ~ {formatDate(round.applyEnd)}</p>}
               <p className="text-extra-small text-muted">
                 첫 가입이라면 가입 직후 이어서 신청해요. 2년 차부터 기존 회원은
                 가입 없이 로그인 후 바로 신청해요.

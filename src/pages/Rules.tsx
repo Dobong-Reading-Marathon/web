@@ -3,9 +3,12 @@ import Chip from "../components/Chip.tsx";
 import Icon from "../components/Icon.tsx";
 import Tower from "../components/Tower.tsx";
 import UserLayout from "../components/UserLayout.tsx";
+import { formatDate, useCurrentRound } from "../api/currentRound.ts";
 
 //피그마11
 export default function Rules() {
+  const { round, loading, error } = useCurrentRound();
+
   return (
     <UserLayout active="rules">
       <section className="content-section is-top">
@@ -41,7 +44,7 @@ export default function Rules() {
             >
               <b style={{ flex: "none" }}>운영 기간</b>
               <span style={{ textAlign: "right", color: "#38443F" }}>
-                [운영 기간]
+                {loading ? "불러오는 중…" : round ? `${formatDate(round.startDate)} ~ ${formatDate(round.endDate)}` : "-"}
               </span>
             </div>
             <div
@@ -54,7 +57,7 @@ export default function Rules() {
             >
               <b style={{ flex: "none" }}>참가신청 기간 · 기록 제출 마감</b>
               <span style={{ textAlign: "right", color: "#38443F" }}>
-                [날짜]
+                {loading ? "불러오는 중…" : round ? `${formatDate(round.applyStart)} ~ ${formatDate(round.applyEnd)}` : "-"}
               </span>
             </div>
             <div
@@ -67,7 +70,7 @@ export default function Rules() {
             >
               <b style={{ flex: "none" }}>코스 기준</b>
               <span style={{ textAlign: "right", color: "#38443F" }}>
-                6개 코스 · 쪽수·권수·서평 편수를 모두 채우면 완주
+                {round ? `${round.courses.length}개 코스 · 쪽수·권수·서평 편수를 모두 채우면 완주` : loading ? "코스 정보를 불러오는 중입니다." : "코스 정보를 불러오지 못했습니다."}
               </span>
             </div>
             <div
@@ -80,7 +83,7 @@ export default function Rules() {
             >
               <b style={{ flex: "none" }}>시상 내용</b>
               <span style={{ textAlign: "right", color: "#38443F" }}>
-                [시상 내용] · 매달 우수 서평을 뽑고, 우수 참여자에게는 상장을
+                매달 우수 서평을 뽑고, 우수 참여자에게는 상장을
                 드려요
               </span>
             </div>
@@ -124,67 +127,32 @@ export default function Rules() {
         <div className="content-card ">
           <div className="content-card-header">
             <h2 className="card-title">코스별 기준</h2>
-            <Chip k="line">기준 수치는 예시예요</Chip>
+            {round && <Chip k="line">{round.year}년 {round.roundNo}회차 기준</Chip>}
           </div>
           <div className="table-wrapper">
             <table>
               <thead>
                 <tr>
                   <th>코스</th>
+                  <th>거리</th>
                   <th>쪽수</th>
                   <th>권수</th>
                   <th>서평</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>
-                    <b>3km</b>
-                  </td>
-                  <td className="numeric-value">3,000쪽</td>
-                  <td className="numeric-value">5권</td>
-                  <td className="numeric-value">서평 2편</td>
-                </tr>
-                <tr>
-                  <td>
-                    <b>5km</b>
-                  </td>
-                  <td className="numeric-value">5,000쪽</td>
-                  <td className="numeric-value">8권</td>
-                  <td className="numeric-value">서평 3편</td>
-                </tr>
-                <tr>
-                  <td>
-                    <b>10km</b>
-                  </td>
-                  <td className="numeric-value">10,000쪽</td>
-                  <td className="numeric-value">15권</td>
-                  <td className="numeric-value">서평 6편</td>
-                </tr>
-                <tr>
-                  <td>
-                    <b>하프 · 21km</b>
-                  </td>
-                  <td className="numeric-value">21,000쪽</td>
-                  <td className="numeric-value">30권</td>
-                  <td className="numeric-value">서평 12편</td>
-                </tr>
-                <tr>
-                  <td>
-                    <b>풀 · 42km</b>
-                  </td>
-                  <td className="numeric-value">42,000쪽</td>
-                  <td className="numeric-value">60권</td>
-                  <td className="numeric-value">서평 24편</td>
-                </tr>
-                <tr>
-                  <td>
-                    <b>가족 풀코스</b>
-                  </td>
-                  <td className="numeric-value">42,000쪽</td>
-                  <td className="numeric-value">60권</td>
-                  <td className="numeric-value">서평 24편</td>
-                </tr>
+                {round?.courses.map((course) => (
+                  <tr key={course.id}>
+                    <td><b>{course.name}{course.family ? " (가족)" : ""}</b></td>
+                    <td className="numeric-value">{course.distanceKm}km</td>
+                    <td className="numeric-value">{new Intl.NumberFormat("ko-KR").format(course.targetPages)}쪽</td>
+                    <td className="numeric-value">{course.targetBooks}권</td>
+                    <td className="numeric-value">서평 {course.targetReviews}편</td>
+                  </tr>
+                ))}
+                {loading && <tr><td colSpan={5}>코스 정보를 불러오는 중입니다.</td></tr>}
+                {error && <tr><td colSpan={5}>{error}</td></tr>}
+                {!loading && !error && round?.courses.length === 0 && <tr><td colSpan={5}>등록된 코스가 없습니다.</td></tr>}
               </tbody>
             </table>
           </div>
