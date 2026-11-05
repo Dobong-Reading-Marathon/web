@@ -1,0 +1,652 @@
+:root {
+  --search-green: #17634f;
+  --search-green-dark: #102d25;
+  --search-mint: #eef5f1;
+  --search-mint-dark: #dcebe4;
+  --search-text: #17231f;
+  --search-muted: #77817c;
+  --search-line: #e5eae7;
+}
+
+.search-page {
+  width: min(1100px, 94%);
+  margin: 28px auto 64px;
+  color: var(--search-text);
+  font-size: 14px;
+}
+
+.search-page *,
+.search-page *::before,
+.search-page *::after {
+  box-sizing: border-box;
+}
+
+.search-page button,
+.search-page input {
+  font: inherit;
+}
+
+.search-page button {
+  color: inherit;
+  cursor: pointer;
+}
+
+.search-page a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 제목 배너 */
+.search-hero {
+  min-height: 168px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 32px 5%;
+  border-radius: 22px;
+  color: #fff;
+  background: #2b8065;
+}
+
+.search-hero h1 {
+  margin: 0 0 8px;
+  font-size: clamp(30px, 4vw, 42px);
+}
+
+.search-hero p {
+  margin: 0;
+  color: #e2f0e9;
+  font-size: 14px;
+}
+
+.search-hero-art {
+  position: absolute;
+  right: 8%;
+  bottom: 0;
+  width: 190px;
+  height: 145px;
+}
+
+.search-book-back {
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  width: 70px;
+  height: 125px;
+  background: #155b49;
+  transform: skewY(10deg);
+}
+
+.search-book-front {
+  position: absolute;
+  right: 48px;
+  bottom: 0;
+  width: 82px;
+  height: 135px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #f7faf7 0 12px,
+    #b5d3c5 13px 14px
+  );
+  clip-path: polygon(0 15%, 100% 0, 100% 100%, 0 100%);
+}
+
+.search-book-small {
+  position: absolute;
+  left: 5px;
+  bottom: 0;
+  width: 62px;
+  height: 48px;
+  border-radius: 5px 5px 0 0;
+  background: #bce0d1;
+}
+
+/* 검색 입력 영역 */
+.search-box {
+  margin-top: 40px;
+  padding: 26px;
+  border-radius: 22px;
+  background: var(--search-mint);
+}
+
+.search-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-form input {
+  min-width: 0;
+  height: 44px;
+  flex: 1;
+  padding: 0 16px;
+  border: 1px solid #dce3df;
+  border-radius: 14px;
+  outline-color: var(--search-green);
+  background: #fff;
+}
+
+.search-page .mic-button {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border: 0;
+  border-radius: 50%;
+  background: #fde8e5;
+}
+
+.search-page .primary-button {
+  height: 42px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--search-green-dark);
+  font-weight: 700;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* 검색 유형 버튼 */
+.filter-list,
+.sort-list,
+.side-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-list {
+  margin-top: 12px;
+}
+
+.search-page .filter-chip,
+.search-page .sort-chip,
+.search-page .side-chips button {
+  padding: 7px 12px;
+  border: 1px solid #e3e8e5;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+}
+
+.search-page .filter-chip.selected,
+.search-page .sort-chip.selected,
+.search-page .side-chips button.selected {
+  border-color: var(--search-green-dark);
+  color: #fff;
+  background: var(--search-green-dark);
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  color: #8d453d;
+  background: #fde9e6;
+  font-size: 11px;
+}
+
+.notice p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* 결과 목록과 오른쪽 패널 */
+.search-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
+  align-items: start;
+  gap: 22px;
+  margin-top: 40px;
+}
+
+.results-panel,
+.side-card {
+  border-radius: 22px;
+  background: var(--search-mint);
+}
+
+.results-panel {
+  padding: 24px;
+}
+
+.results-heading,
+.side-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.results-heading {
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.results-heading h2,
+.side-card h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.results-heading h2 span {
+  font-weight: 400;
+}
+
+.search-page .sort-chip {
+  padding: 7px 10px;
+  font-size: 11px;
+}
+
+/* 결과 한 줄 */
+.result-item {
+  min-height: 82px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #dfe8e3;
+}
+
+.book-cover {
+  width: 42px;
+  height: 50px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.cover-peach {
+  color: #8f563c;
+  background: #f5e2d3;
+}
+
+.cover-mint {
+  color: #38684e;
+  background: #d7e9dc;
+}
+
+.cover-sage {
+  color: #315d4b;
+  background: #dce9dc;
+}
+
+.result-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
+.tags span {
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #5b625e;
+  background: #fff;
+  font-size: 10px;
+}
+
+.tags .tag-green {
+  color: #367454;
+  background: #dff1e7;
+}
+
+.tags .tag-yellow {
+  color: #78611e;
+  background: #fff1c9;
+}
+
+.tags .tag-pink {
+  color: #9a5148;
+  background: #fde3df;
+}
+
+.result-content h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.result-content p {
+  margin: 0;
+  color: #65706a;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.result-content p a,
+.result-content mark {
+  color: #221e14;
+  background: #fff1c9;
+}
+
+.result-content small {
+  display: block;
+  margin-top: 5px;
+  color: #89928d;
+  font-size: 10px;
+}
+
+.result-content .excerpt {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.search-page .view-link {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+/* 페이지 버튼 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 18px;
+}
+
+.search-page .pagination button {
+  min-width: 31px;
+  height: 31px;
+  padding: 0 10px;
+  border: 1px solid #dce4df;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11px;
+}
+
+.search-page .pagination button.current {
+  border-color: var(--search-green-dark);
+  color: #fff;
+  background: var(--search-green-dark);
+}
+
+/* 오른쪽 패널 */
+.search-side-column {
+  display: grid;
+  gap: 16px;
+}
+
+.side-card {
+  padding: 22px;
+}
+
+.side-chips {
+  margin-top: 14px;
+}
+
+.search-page .side-chips button {
+  font-size: 11px;
+}
+
+.helper-text,
+.bookshelf-card p {
+  margin: 12px 0 0;
+  color: var(--search-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.search-page .text-button {
+  padding: 0;
+  border: 0;
+  color: var(--search-green);
+  background: transparent;
+  font-size: 11px;
+}
+
+.recent-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recent-list li {
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid #dfe8e3;
+  font-size: 12px;
+}
+
+.recent-list li:last-child {
+  border-bottom: 0;
+}
+
+.recent-list li span {
+  color: #707a74;
+}
+
+.recent-list li button {
+  margin-left: auto;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  font-size: 17px;
+}
+
+.search-page .outline-button {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  margin-top: 14px;
+  border: 1px solid #89958e;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 태블릿 */
+@media (max-width: 760px) {
+  .search-page {
+    width: 92%;
+    margin-top: 18px;
+  }
+
+  .search-hero {
+    min-height: 145px;
+    padding: 26px 6%;
+  }
+
+  .search-hero-art {
+    right: -22px;
+    transform: scale(.75);
+    transform-origin: bottom right;
+  }
+
+  .search-box {
+    margin-top: 22px;
+    padding: 18px;
+  }
+
+  .search-content-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 22px;
+  }
+
+  .search-side-column {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bookshelf-card {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 모바일 */
+@media (max-width: 480px) {
+  .search-hero h1 {
+    font-size: 30px;
+  }
+
+  .search-hero p {
+    max-width: 210px;
+    font-size: 12px;
+  }
+
+  .search-box {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .search-form {
+    gap: 6px;
+  }
+
+  .search-form input {
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .search-page .mic-button {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .search-page .primary-button {
+    height: 38px;
+    padding: 0 13px;
+  }
+
+  .search-content-grid {
+    margin-top: 18px;
+  }
+
+  .results-panel,
+  .side-card {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .results-heading {
+    align-items: flex-start;
+  }
+
+  .sort-list {
+    width: 100%;
+  }
+
+  .search-page .sort-chip {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .result-item {
+    gap: 9px;
+  }
+
+  .book-cover {
+    width: 36px;
+    height: 45px;
+    flex-basis: 36px;
+  }
+
+  .search-page .view-link {
+    margin-left: 0;
+  }
+
+  .search-side-column {
+    grid-template-columns: 1fr;
+  }
+
+  .bookshelf-card {
+    grid-column: auto;
+  }
+
+  .search-page .pagination button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+/* 검색 결과 상태 */
+.search-empty,
+.search-query-note {
+  color: var(--search-muted);
+  font-size: 12px;
+}
+
+.search-empty {
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* 최근 검색어 */
+.search-page .recent-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: center;
+  min-height: 42px;
+  gap: 8px;
+}
+
+.search-page .recent-list li .recent-word {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-self: start;
+  gap: 7px;
+  padding: 6px 0;
+  border: 0;
+  color: var(--search-text);
+  background: transparent;
+  font-size: 12px;
+  text-align: left;
+}
+
+.search-page .recent-list li .recent-word span {
+  flex: 0 0 auto;
+  color: var(--search-muted);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.search-page .recent-list li .recent-delete {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  justify-self: end;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--search-text);
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+}
+
