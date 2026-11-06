@@ -6,6 +6,7 @@ import Join from "./pages/Join.tsx";
 import Certificate from "./pages/Certificate.tsx";
 import Library from "./pages/Library.tsx";
 import LibraryNotes from "./pages/LibraryNotes.tsx";
+import BookRegister from "./pages/BookRegister.tsx";
 
 
 function ScrollToTop() {
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/rules" element={<Rules />} />
         <Route path="/join" element={<Join />} />
         <Route path="/certificate" element={<Certificate />} />
+        <Route path="/register" element={<BookRegister />} />
       </Routes>
     </div>
   );
