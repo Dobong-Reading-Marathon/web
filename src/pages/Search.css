@@ -204,7 +204,7 @@
   line-height: 1.6;
 }
 
-/* 결과 목록과 오른쪽 패널 */
+/* 결과 목록 및 오른쪽 패널 */
 .search-content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
@@ -650,3 +650,27 @@
   line-height: 1;
 }
 
+.search-page .result-content mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  color: #221e14;
+  background: #fff1c9;
+}
+
+.search-page .mic-button {
+  color: #a74c42;
+  background: #fde8e5;
+}
+
+.search-page .notice {
+  color: #8d453d;
+  background: #fde9e6;
+}
+
+.search-page .notice > span {
+  color: #b64e43;
+}
+
+.search-page .notice strong {
+  color: #8f3e36;
+}

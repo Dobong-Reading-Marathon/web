@@ -16,7 +16,7 @@ type SearchResult = {
   author: string;
   detail: string;
   note: string;
-  readDate: string; // YYYY-MM-DD 형식: 날짜 최신순 정렬용
+  readDate: string; 
 };
 
 const ALL_RESULTS: SearchResult[] = [
@@ -56,7 +56,7 @@ const ALL_RESULTS: SearchResult[] = [
     title: "소년이 온다 · 서평",
     author: "한강",
     detail:
-      "아직 정돈된 전체의 일부를 오래 남겼다. 한강을 읽고 나서 마음을 고르게 되는 책이었습니다…",
+      "...한강의 문장은 천천히 읽을수록 오래 남았다. 한 장을 넘길 때마다 숨을 고르게 되는 책이었다...",
     note: "10월 8일 작성 · 서평 536자",
     readDate: "2026-10-08",
   },
@@ -83,7 +83,7 @@ const ALL_RESULTS: SearchResult[] = [
     title: "불편한 편의점 · 서평",
     author: "김호연",
     detail:
-      "오늘은 책을 통해 한강의 소설과 나란히 놓고 싶은 따뜻한 이야기를…",
+      "요즘 읽은 책 중 한강의 소설과 나란히 놓고 싶은 따뜻한 책이었다...",
     note: "10월 6일 작성 · 서평 412자",
     readDate: "2026-10-06",
   },
@@ -131,6 +131,22 @@ function getStatusClass(status: SearchResult["status"]) {
   if (status === "승인") return "tag-green";
   if (status === "심사 대기") return "tag-yellow";
   return "tag-pink";
+}
+
+function highlightText(text: string, query: string) {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) return text;
+
+  const escapedQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escapedQuery})`, "gi"));
+
+  return parts.map((part, index) =>
+    part.toLocaleLowerCase() === trimmedQuery.toLocaleLowerCase() ? (
+      <mark key={`${index}-${part}`}>{part}</mark>
+    ) : (
+      part
+    ),
+  );
 }
 
 export default function Search() {
@@ -181,7 +197,7 @@ export default function Search() {
     } else if (sort === "도서명순") {
       filtered.sort((a, b) => a.title.localeCompare(b.title, "ko"));
     } else if (query.trim()) {
-      // 데모용: 검색어가 제목 앞쪽에 있을수록 정확도순으로 먼저 보여줘요.
+    
       filtered.sort((a, b) => {
         const aStarts = a.title.toLocaleLowerCase().startsWith(normalizedQuery);
         const bStarts = b.title.toLocaleLowerCase().startsWith(normalizedQuery);
@@ -297,11 +313,14 @@ export default function Search() {
             ))}
           </div>
 
-          {query && (
-            <p className="search-query-note">
-              “{query}”로 검색 중
+          <div className="notice">
+            <span aria-hidden="true">🎙</span>
+            <p>
+              <strong>음성 검색 안내</strong>
+              <br />
+              마이크 권한이 필요해요. 말한 내용은 검색어로만 쓰고 음성 파일은 서버에 저장하지 않아요.
             </p>
-          )}
+          </div>
         </section>
 
         <div className="search-content-grid">
@@ -339,10 +358,8 @@ export default function Search() {
                         {result.status}
                       </span>
                     </div>
-                    <h3>{result.title}</h3>
-                    <p>
-                      {result.author} · {result.detail}
-                    </p>
+                    <h3>{highlightText(result.title, query)}</h3>
+                    <p>{highlightText(`${result.author} · ${result.detail}`, query)}</p>
                     <small>{result.note}</small>
                   </div>
                   <Link className="view-link" to="/library">
