@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Icon, { type IconName } from "./Icon";
 import logo from "../assets/logo.png";
-import { getCurrentUser } from "../api/calendar";
+import { getCurrentUser } from "../api/users";
 
 export type UserNav = "home" | "lib" | "cal" | "search" | "rules" | "";
 

@@ -296,6 +296,9 @@ select {
 .grid--three-two-columns {
   grid-template-columns: 3fr 2fr;
 }
+.calendar-layout {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
 .grid--two-three-columns {
   grid-template-columns: 2fr 3fr;
 }
@@ -809,7 +812,8 @@ td {
   gap: 6px;
   align-items: flex-start;
 }
-.calendar-grid .calendar-day span:before {
+/*불필요한 style이라 주석처리*/
+/* .calendar-grid .calendar-day span:before {
   content: "";
   width: 8px;
   height: 8px;
@@ -817,7 +821,7 @@ td {
   background: currentColor;
   margin-top: 5px;
   flex: none;
-}
+} */
 .status-indicator--approved {
   color: #1b8a55;
 }
@@ -1826,6 +1830,41 @@ body {
   }
   .call-to-action .section-title {
     font-size: 32px;
+  }
+}
+@container (max-width:1000px) {
+  .calendar-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .calendar-layout .calendar-grid {
+    gap: 4px;
+  }
+  .calendar-layout .calendar-grid .calendar-day {
+    min-height: 50px;
+    padding: 6px;
+    border-radius: 12px;
+    align-items: center;
+    gap: 2px;
+  }
+  .calendar-layout .calendar-grid .calendar-day span {
+    display: none;
+  }
+  .calendar-layout .calendar-grid .calendar-day.has-entry:after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #1b8a55;
+    margin-top: 2px;
+  }
+  .calendar-layout .calendar-grid .calendar-day.has-entry.is-waiting:after {
+    background: #c98a00;
+  }
+  .calendar-layout .calendar-grid .calendar-day.has-entry.is-fix-requested:after {
+    background: #c4311f;
+  }
+  .calendar-layout .calendar-grid .calendar-day.has-entry.is-draft:after {
+    background: #7a8680;
   }
 }
 @container (max-width:800px) {
