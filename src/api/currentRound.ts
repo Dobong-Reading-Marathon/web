@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "./client";
 
 export interface Course {
   id: number;
@@ -37,11 +38,9 @@ export function useCurrentRound(): CurrentRoundState {
 
   useEffect(() => {
     const controller = new AbortController();
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
-
     async function loadCurrentRound() {
       try {
-        const response = await fetch(`${apiBaseUrl}/api/rounds/current`, {
+        const response = await apiFetch("/api/rounds/current", {
           signal: controller.signal,
         });
         if (!response.ok) {

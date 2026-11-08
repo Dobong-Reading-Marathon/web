@@ -7,6 +7,8 @@ import Certificate from "./pages/Certificate.tsx";
 import Library from "./pages/Library.tsx";
 import LibraryNotes from "./pages/LibraryNotes.tsx";
 import BookRegister from "./pages/BookRegister.tsx";
+import Search from "./pages/Search.tsx";
+import CourseChange from "./pages/CourseChange.tsx";
 
 
 function ScrollToTop() {
@@ -27,8 +29,10 @@ export default function App() {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/rules" element={<Rules />} />
         <Route path="/join" element={<Join />} />
+        <Route path="/course-change" element={<CourseChange />} />
         <Route path="/certificate" element={<Certificate />} />
         <Route path="/register" element={<BookRegister />} />
+        <Route path="/search" element={<Search />} />
       </Routes>
     </div>
   );
