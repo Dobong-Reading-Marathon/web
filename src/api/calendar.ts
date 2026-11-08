@@ -33,6 +33,20 @@ export interface ReadingCalendar {
   days: CalendarDay[];
 }
 
+export interface ReadingLogDetail {
+  id: number;
+  enrollmentBookId: number;
+  startPage: number;
+  endPage: number;
+  readDate: string;
+  quote: string | null;
+  review: string | null;
+  status: ReadingStatus;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  librarianComment: string | null;
+}
+
 async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
   const response = await apiFetch(path, {
     signal,
@@ -48,4 +62,7 @@ export const getEnrollmentProgress = (enrollmentId: number, signal: AbortSignal)
 
 export const getReadingCalendar = (year: number, month: number, signal: AbortSignal) =>
   getJson<ReadingCalendar>(`/api/me/calendar?year=${year}&month=${month}`, signal);
+
+export const getReadingLogDetail = (readingLogId: number, signal: AbortSignal) =>
+  getJson<ReadingLogDetail>(`/api/reading-logs/${readingLogId}`, signal);
 

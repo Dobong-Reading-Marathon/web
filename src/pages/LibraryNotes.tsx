@@ -1,43 +1,148 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Chip, { type ChipKind } from "../components/Chip";
 import Cover from "../components/Cover";
 import Icon from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
+import { getBooks, type LibraryBookStatus } from "../api/books";
+import { getReadingCalendar, getReadingLogDetail, type ReadingLogDetail } from "../api/calendar";
+import { getCurrentEnrollment } from "../api/enrollments";
 
 type ReadingRecord = {
-  id: string;
+  id: number;
   date: string;
   title: string;
   initial: string;
   author: string;
   pages: string;
-  summary: string;
   status: string;
   chipKind: ChipKind;
   totalPages: number;
   ownership: string;
   readDate: string;
-  comment: string;
-  quote: string;
-  review: string;
-  reviewWords: number;
+  children: boolean;
 };
-{/*변수값으로 변경*/}
-const initialRecords: ReadingRecord[] = [
-  { id: "damian", date: "10월 11일", title: "데미안", initial: "데", author: "헤르만 헤세", pages: "1–140쪽", summary: "마음에 드는 글귀 1개", status: "임시저장", chipKind: "draft", totalPages: 248, ownership: "소장도서", readDate: "10월 11일", comment: "", quote: "[글귀 본문]", review: "아직 쓰지 않았어요.", reviewWords: 0 },
-  { id: "farewell", date: "10월 10일", title: "작별하지 않는다", initial: "작", author: "한강", pages: "1–210쪽", summary: "서평 작성", status: "심사 대기", chipKind: "wait", totalPages: 332, ownership: "소장도서", readDate: "10월 10일", comment: "", quote: "", review: "서평 검토 중", reviewWords: 412 },
-  { id: "소년", date: "10월 8일", title: "소년이 온다", initial: "소", author: "한강", pages: "1–215쪽", summary: "서평 작성", status: "승인", chipKind: "ok", totalPages: 215, ownership: "소장도서", readDate: "10월 8일", comment: "", quote: "", review: "기록이 승인됐어요.", reviewWords: 508 },
-  { id: "convenience-2", date: "10월 6일", title: "불편한 편의점", initial: "불", author: "김호연", pages: "141–260쪽", summary: "", status: "보완요청", chipKind: "fix", totalPages: 268, ownership: "소장도서", readDate: "10월 6일", comment: "서평이 412자예요. 500자 이상으로, 줄거리 대신 느낀 점을 더 보태 주세요.", quote: "[글귀 본문]", review: "[서평 본문 일부가 여기에 보여요…]", reviewWords: 412 },
-  { id: "convenience-1", date: "10월 5일", title: "불편한 편의점", initial: "불", author: "김호연", pages: "1–140쪽", summary: "", status: "보완요청", chipKind: "fix", totalPages: 268, ownership: "소장도서", readDate: "10월 5일", comment: "서평 내용을 조금 더 보완해 주세요.", quote: "[글귀 본문]", review: "[서평 본문 일부가 여기에 보여요…]", reviewWords: 412 },
-  { id: "prince", date: "10월 3일", title: "어린 왕자", initial: "어", author: "생텍쥐페리", pages: "61–112쪽", summary: "서평 작성", status: "승인", chipKind: "ok", totalPages: 112, ownership: "소장도서", readDate: "10월 3일", comment: "", quote: "", review: "기록이 승인됐어요.", reviewWords: 506 },
-];
+
+const statusLabels: Record<LibraryBookStatus | string, string> = {
+  NO_RECORD: "기록 전",
+  DRAFT: "임시저장",
+  SUBMITTED: "심사 대기",
+  APPROVED: "승인",
+  REVISION_REQUESTED: "보완요청",
+};
+
+const statusKinds: Record<string, ChipKind> = {
+  DRAFT: "draft",
+  SUBMITTED: "wait",
+  APPROVED: "ok",
+  REVISION_REQUESTED: "fix",
+};
+
+function formatDate(date: string) {
+  const [, month, day] = date.split("-").map(Number);
+  return `${month}월 ${day}일`;
+}
+
+function formatPages(startPage: number, endPage: number) {
+  return `${startPage}–${endPage}쪽`;
+}
+
+function reviewCharCount(review: string | null | undefined) {
+  return Array.from(review ?? "").length;
+}
 
 export default function LibraryNotes() {
-  const [records, setRecords] = useState(initialRecords);
-  const [selectedId, setSelectedId] = useState("convenience-2");
-  const selectedRecord = records.find((record) => record.id === selectedId) ?? records[0];
+  const [records, setRecords] = useState<ReadingRecord[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<ReadingLogDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadRecords() {
+      try {
+        const [enrollment, books] = await Promise.all([
+          getCurrentEnrollment(controller.signal),
+          getBooks({ signal: controller.signal }),
+        ]);
+        if (controller.signal.aborted) return;
+        const bookMap = new Map(books.map((book) => [book.enrollmentBookId, book]));
+        if (!enrollment) {
+          setRecords([]);
+          return;
+        }
+
+        const calendars = await Promise.all(
+          Array.from({ length: 12 }, (_, index) =>
+            getReadingCalendar(enrollment.year, index + 1, controller.signal),
+          ),
+        );
+        if (controller.signal.aborted) return;
+
+        const nextRecords = calendars.flatMap((calendar) =>
+          calendar.days.flatMap((day) => day.logs.map((log) => {
+            const book = bookMap.get(log.enrollmentBookId);
+            return {
+              id: log.readingLogId,
+              date: formatDate(day.date),
+              title: log.bookTitle,
+              initial: log.bookTitle.slice(0, 1) || "책",
+              author: book?.author ?? "",
+              pages: formatPages(log.startPage, log.endPage),
+              status: statusLabels[log.status] ?? log.status,
+              chipKind: statusKinds[log.status] ?? "line",
+              totalPages: book?.totalPages ?? 0,
+              ownership: book?.libraryOwned ? "소장도서" : "소장 아님",
+              readDate: formatDate(day.date),
+              children: book?.children ?? false,
+            } satisfies ReadingRecord;
+          })),
+        ).sort((a, b) => {
+          const [aMonth, aDay] = a.date.split("월 ").map(Number);
+          const [bMonth, bDay] = b.date.split("월 ").map(Number);
+          return bMonth - aMonth || bDay - aDay || b.id - a.id;
+        });
+
+        setRecords(nextRecords);
+        setSelectedId(nextRecords[0]?.id ?? null);
+      } catch (reason) {
+        if (!controller.signal.aborted) {
+          setError(reason instanceof Error ? reason.message : "독서 기록을 불러오지 못했습니다.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    void loadRecords();
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (selectedId === null) {
+      setSelectedDetail(null);
+      return;
+    }
+    const controller = new AbortController();
+    setDetailLoading(true);
+    setSelectedDetail(null);
+    getReadingLogDetail(selectedId, controller.signal)
+      .then(setSelectedDetail)
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted) {
+          setError(reason instanceof Error ? reason.message : "기록 상세를 불러오지 못했습니다.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setDetailLoading(false);
+      });
+    return () => controller.abort();
+  }, [selectedId]);
+
+  const selectedRecord = records.find((record) => record.id === selectedId);
+  const reviewWords = reviewCharCount(selectedDetail?.review);
 
   return (
     <UserLayout active="lib">
@@ -56,28 +161,23 @@ export default function LibraryNotes() {
               <p className="page-description">날짜순으로 기록을 훑고, 한 건씩 열어 수정하거나 다시 제출해요.</p>
             </div>
             <div className="view-switcher">
-              <Link to="/library">
-                <Icon n="grid" s={16} sw={1.8} /> 카드형
-              </Link>
-              <Link to="/library/notes" className="is-active" aria-current="page">
-                <Icon n="list" s={16} sw={1.8} /> 수첩형
-              </Link>
+              <Link to="/library"><Icon n="grid" s={16} sw={1.8} /> 카드형</Link>
+              <Link to="/library/notes" className="is-active" aria-current="page"><Icon n="list" s={16} sw={1.8} /> 수첩형</Link>
             </div>
           </div>
         </div>
 
-        {selectedRecord ? (
+        {error && <div className="notice notice--danger" role="alert">{error}</div>}
+        {loading ? (
+          <div className="content-card text-muted">독서 기록을 불러오는 중이에요.</div>
+        ) : selectedRecord ? (
           <div className="grid--three-two-columns notes-detail-layout">
             <div className="content-card notes-list-card">
               <div className="content-card-header">
                 <h2 className="card-title">수첩형 보기</h2>
                 <div className="action-group">
-                  <button type="button" className="button is-small" onClick={() => window.print()}>
-                    <Icon n="printer" s={15} sw={1.8} /> 인쇄
-                  </button>
-                  <button type="button" className="button is-small" onClick={() => window.print()}>
-                    <Icon n="download" s={15} sw={1.8} /> PDF
-                  </button>
+                  <button type="button" className="button is-small" onClick={() => window.print()}><Icon n="printer" s={15} sw={1.8} /> 인쇄</button>
+                  <button type="button" className="button is-small" onClick={() => window.print()}><Icon n="download" s={15} sw={1.8} /> PDF</button>
                 </div>
               </div>
               <p className="text-small text-muted notes-list-caption">인쇄 미리보기 · 읽은 날짜 최신순</p>
@@ -91,10 +191,7 @@ export default function LibraryNotes() {
                     aria-pressed={record.id === selectedId}
                   >
                     <b className="reading-record-date">{record.date}</b>
-                    <span className="reading-record-summary">
-                      <strong>{record.title} · {record.pages}</strong>
-                      {record.summary && <span> · {record.summary}</span>}
-                    </span>
+                    <span className="reading-record-summary"><strong>{record.title} · {record.pages}</strong></span>
                     <Chip k={record.chipKind}>{record.status}</Chip>
                   </button>
                 ))}
@@ -114,36 +211,28 @@ export default function LibraryNotes() {
                 </div>
               </div>
               <p className="text-small text-muted">읽은 쪽 {selectedRecord.pages.replace("쪽", "")} · 읽은 날짜 {selectedRecord.readDate}</p>
-              {selectedRecord.comment && (
+              {selectedDetail?.librarianComment && (
                 <div className="notice notice--danger reviewer-comment">
                   <Icon n="bell" s={18} />
-                  <div><b>사서 코멘트 · 10월 11일</b><br />{selectedRecord.comment}</div> {/*변수값으로 변경*/}
+                  <div><b>사서 코멘트{selectedDetail.reviewedAt ? ` · ${formatDate(selectedDetail.reviewedAt.slice(0, 10))}` : ""}</b><br />{selectedDetail.librarianComment}</div>
                 </div>
               )}
               <div className="record-detail-section">
                 <b className="text-small">마음에 드는 글귀</b>
-                <p className="text-muted">{selectedRecord.quote || "등록한 글귀가 없어요."}</p>
+                <p className="text-muted">{selectedDetail?.quote || "등록한 글귀가 없어요."}</p>
               </div>
               <div className="record-detail-section">
                 <div className="space-between-row">
                   <b className="text-small">서평</b>
-                  <b className="review-word-count">{selectedRecord.reviewWords} / 500자</b>
+                  <b className="review-word-count">{detailLoading ? "—" : reviewWords} / 500자</b>
                 </div>
-                <div className="progress-bar is-orange"><i style={{ width: `${Math.min(selectedRecord.reviewWords / 500 * 100, 100)}%` }} /></div>
-                <p className="text-small text-muted">{selectedRecord.review}</p>
+                <div className="progress-bar is-orange"><i style={{ width: `${Math.min(reviewWords / 500 * 100, 100)}%` }} /></div>
+                <p className="text-small text-muted">{detailLoading ? "기록을 불러오는 중이에요." : selectedDetail?.review || "아직 쓰지 않았어요."}</p>
               </div>
               <div className="action-group record-detail-actions">
                 <Link to="/records/new" className="button button--primary">고쳐서 다시 제출</Link>
                 <Link to="/records/new" className="button"><Icon n="pen" s={15} /> 수정</Link>
-                <button
-                  type="button"
-                  className="button button--danger-outline"
-                  onClick={() => {
-                    const remaining = records.filter((record) => record.id !== selectedRecord.id);
-                    setRecords(remaining);
-                    if (remaining.length) setSelectedId(remaining[0].id);
-                  }}
-                >
+                <button type="button" className="button button--danger-outline" disabled={selectedRecord.status === "승인"}>
                   <Icon n="trash" s={15} /> 삭제
                 </button>
               </div>
@@ -157,10 +246,8 @@ export default function LibraryNotes() {
         <div className="content-card content-card--mint review-status-card">
           <h2 className="card-title">심사 상태</h2>
           <div className="review-status-flow">
-            <Chip k="draft">임시저장</Chip><span>→</span>
-            <Chip k="wait">심사 대기</Chip><span>→</span>
-            <Chip k="ok">승인</Chip><span className="text-muted">또는</span>
-            <Chip k="fix">보완요청</Chip>
+            <Chip k="draft">임시저장</Chip><span>→</span><Chip k="wait">심사 대기</Chip><span>→</span>
+            <Chip k="ok">승인</Chip><span className="text-muted">또는</span><Chip k="fix">보완요청</Chip>
           </div>
         </div>
       </section>
