@@ -179,6 +179,37 @@
   border-radius: 12px;
 }
 
+.barcode-camera {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+  margin-top: 12px;
+  border-radius: 14px;
+  background: #071b16;
+}
+
+.barcode-camera video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-guide {
+  position: absolute;
+  inset: 30% 12%;
+  border: 2px solid #f2ca83;
+  border-radius: 10px;
+  box-shadow: 0 0 0 999px rgb(0 0 0 / 20%);
+  pointer-events: none;
+}
+
+.camera-status {
+  margin: 10px 0;
+  color: #17634f;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .barcode-lines {
   width: 30px;
   height: 24px;
