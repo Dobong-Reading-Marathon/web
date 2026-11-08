@@ -1,5 +1,6 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import type { IScannerControls } from "@zxing/browser";
 import UserLayout from "../components/UserLayout";
 import "./BookRegister.css";
 
@@ -57,6 +58,29 @@ const MOCK_BOOKS: Book[] = [
 
 type BookType = "소장도서" | "소장도서 아님";
 
+function waitForVideoFrame(video: HTMLVideoElement, timeoutMs = 6000) {
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => finish(new Error("video-timeout")), timeoutMs);
+    const onLoadedData = () => {
+      if (video.videoWidth > 0) finish();
+    };
+    const onError = () => finish(new Error("video-error"));
+    function finish(error?: Error) {
+      window.clearTimeout(timeoutId);
+      video.removeEventListener("loadeddata", onLoadedData);
+      video.removeEventListener("error", onError);
+      if (error) reject(error);
+      else resolve();
+    }
+    video.addEventListener("loadeddata", onLoadedData);
+    video.addEventListener("error", onError);
+  });
+}
+
 export default function BookRegister() {
   const navigate = useNavigate();
 
@@ -73,6 +97,113 @@ export default function BookRegister() {
   const [message, setMessage] = useState("");
   const [isbnMode, setIsbnMode] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraMessage, setCameraMessage] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerControlsRef = useRef<IScannerControls | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+
+  function stopCamera() {
+    scannerControlsRef.current?.stop();
+    scannerControlsRef.current = null;
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    cameraStreamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraOpen(false);
+  }
+
+  useEffect(() => () => {
+    scannerControlsRef.current?.stop();
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  function startCamera() {
+    setIsbnMode(false);
+    setShowIsbnInput(false);
+    setMessage("");
+    setCameraMessage("");
+    if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) {
+      setCameraMessage("이 브라우저에서는 카메라를 사용할 수 없어요. ISBN을 직접 입력해 주세요.");
+      return;
+    }
+    setCameraOpen(true);
+    setCameraMessage("ISBN 바코드를 화면 가운데 맞춰 주세요.");
+  }
+
+  useEffect(() => {
+    if (!cameraOpen || !videoRef.current) return;
+    let scanning = true;
+    const video = videoRef.current;
+    async function connectCameraAndScan() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "environment" : "user" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+        if (!scanning) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        cameraStreamRef.current = stream;
+        video.srcObject = stream;
+        await video.play();
+        await waitForVideoFrame(video);
+        const videoTrack = stream.getVideoTracks()[0];
+        if (!videoTrack || videoTrack.readyState !== "live") {
+          throw new Error("camera-track-not-live");
+        }
+        setCameraMessage("카메라 영상이 표시되고 있어요. ISBN 바코드를 화면 가운데 맞춰 주세요.");
+
+        const { BarcodeFormat, BrowserMultiFormatOneDReader } = await import("@zxing/browser");
+        if (!scanning) return;
+        const reader = new BrowserMultiFormatOneDReader();
+        reader.possibleFormats = [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E];
+        scannerControlsRef.current = await reader.decodeFromVideoElement(video, (result, _error, controls) => {
+          if (!scanning) {
+            controls.stop();
+            return;
+          }
+          scannerControlsRef.current = controls;
+          if (!result) return;
+          const value = result.getText().replace(/\D/g, "");
+          if (value.length === 13 && /^(978|979)/.test(value)) {
+            setIsbn(value);
+            setShowIsbnInput(true);
+            setIsbnMode(true);
+            setCameraMessage(`ISBN ${value}을(를) 인식했어요. 책 정보를 찾아보세요.`);
+            stopCamera();
+          }
+        });
+      } catch (error: unknown) {
+        if (!scanning) return;
+        const errorName = error instanceof DOMException ? error.name : "";
+        const errorMessage = error instanceof Error && (error.message.startsWith("video-") || error.message === "camera-track-not-live")
+          ? "카메라 권한은 허용됐지만 영상이 들어오지 않아요. Windows 카메라 개인정보 설정과 다른 앱의 카메라 사용 여부를 확인해 주세요."
+          : errorName === "NotAllowedError" || errorName === "SecurityError"
+          ? "카메라 권한이 거부됐어요. 사이트 설정에서 카메라를 허용해 주세요."
+          : errorName === "NotFoundError" || errorName === "OverconstrainedError"
+            ? "사용할 수 있는 카메라를 찾지 못했어요. 연결된 카메라를 확인해 주세요."
+            : errorName === "NotReadableError" || errorName === "AbortError"
+              ? "카메라가 다른 앱에서 사용 중일 수 있어요. 다른 앱을 닫고 다시 시도해 주세요."
+              : "카메라를 시작하지 못했어요. HTTPS 또는 localhost에서 열고 카메라 연결을 확인해 주세요.";
+        setCameraMessage(errorMessage);
+        setCameraOpen(false);
+      }
+    }
+    void connectCameraAndScan();
+    return () => {
+      scanning = false;
+      scannerControlsRef.current?.stop();
+      scannerControlsRef.current = null;
+      cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+      cameraStreamRef.current = null;
+      video.srcObject = null;
+    };
+  }, [cameraOpen]);
 
   const matchingBooks = useMemo(() => {
     const query = submittedQuery.trim().toLocaleLowerCase();
@@ -106,7 +237,7 @@ export default function BookRegister() {
   function handleIsbnSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const normalizedIsbn = isbn.replaceAll("-", "").trim();
+    const normalizedIsbn = isbn.replace(/\D/g, "").trim();
     const foundBook = MOCK_BOOKS.find(
       (book) => book.isbn === normalizedIsbn,
     );
@@ -213,25 +344,34 @@ export default function BookRegister() {
                 ISBN 바코드를 사각형 안에 맞춰 주세요.
               </p>
 
+              {cameraOpen && (
+                <div className="barcode-camera">
+                  <video ref={videoRef} autoPlay muted playsInline aria-label="ISBN 바코드 카메라 화면" />
+                  <span className="camera-guide" aria-hidden="true" />
+                </div>
+              )}
+              {cameraMessage && <p className="camera-status" role="status">{cameraMessage}</p>}
+
               <div className="register-button-row">
                 <button
                   className={`register-button ${isbnMode ? "button-outline" : "button-dark"}`}
                   type="button"
                   onClick={() => {
-                    setIsbnMode(false);
-                    setShowIsbnInput(false);
-                    setMessage("");
+                    if (cameraOpen) stopCamera();
+                    else void startCamera();
                   }}
               >
-                ▣ 바코드 촬영
+                {cameraOpen ? "촬영 닫기" : "▣ 바코드 촬영"}
               </button>
 
               <button
                 className={`register-button ${isbnMode ? "button-dark" : "button-outline"}`}
                 type="button"
                 onClick={() => {
+                  if (cameraOpen) stopCamera();
                   setIsbnMode(true);
                   setShowIsbnInput(true);
+                  setCameraMessage("");
                   setMessage("");
                 }}
               >
@@ -239,7 +379,7 @@ export default function BookRegister() {
               </button>
             </div>
 
-              {showIsbnInput && (
+              {(showIsbnInput || cameraMessage) && (
                 <form className="isbn-form" onSubmit={handleIsbnSearch}>
                   <label className="register-field">
                     <span>ISBN</span>
