@@ -5,8 +5,8 @@ import Cover from "../components/Cover";
 import Icon from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
+import { getCurrentEnrollment } from "../api/enrollments";
 import {
-  getCurrentEnrollment,
   getEnrollmentProgress,
   getReadingCalendar,
   type CalendarDay,
@@ -141,7 +141,7 @@ export default function Calendar() {
             <div className="content-card content-card--mint content-card--compact"><div className="metric"><span>이달의 쪽수</span><b className="numeric-value">{loading ? "—" : `${formatNumber(calendar?.summary.pages ?? 0)}쪽`}</b><span>{loading ? "" : `약 ${((calendar?.summary.pages ?? 0) / 1000).toFixed(2)}km`}</span></div></div>
           </div>
           {progress && <p className="text-extra-small text-muted">대회 누적 {progress.readKm}km · 완독 {progress.completedBooks}권</p>}
-          <div className="grid--three-two-columns">
+          <div className="grid--three-two-columns calendar-layout">
             <div className="content-card">
               <div className="space-between-row">
                 <div className="action-group">
