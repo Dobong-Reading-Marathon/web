@@ -1,13 +1,33 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Chip from "../components/Chip.tsx";
 import Icon from "../components/Icon.tsx";
 import Tower from "../components/Tower.tsx";
 import UserLayout from "../components/UserLayout.tsx";
 import { formatDate, useCurrentRound } from "../api/currentRound.ts";
+import { getCurrentEnrollment, type CurrentEnrollment } from "../api/enrollments";
 
 //피그마11_대회요강
 export default function Rules() {
   const { round, loading, error } = useCurrentRound();
+  const [enrollment, setEnrollment] = useState<CurrentEnrollment | null>(null);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(true);
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getCurrentEnrollment(controller.signal)
+      .then(setEnrollment)
+      .catch((cause: unknown) => {
+        if (!controller.signal.aborted) {
+          setEnrollmentError(cause instanceof Error ? cause.message : "참가 정보를 불러오지 못했습니다.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setEnrollmentLoading(false);
+      });
+    return () => controller.abort();
+  }, []);
 
   return (
     <UserLayout active="rules">
@@ -22,13 +42,14 @@ export default function Rules() {
               </p>
             </div>
             <div className="action-group">
-              <Link to="/join" className="button button--primary">
-                코스 선택 · 참가 신청
+              <Link to={enrollment ? "/course-change" : "/join"} className="button button--primary">
+                {enrollmentLoading ? "참가 정보 확인 중…" : enrollment ? "코스 변경" : "코스 선택 · 참가 신청"}
                 <Icon n="arrow" s={16} sw={1.8} />
               </Link>
             </div>
           </div>
         </div>
+        {enrollmentError && <p className="text-extra-small text-muted" role="status">{enrollmentError}</p>}
         <div className="grid--two-columns">
           <div className="content-card ">
             <div className="content-card-header">
