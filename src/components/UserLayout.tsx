@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Icon, { type IconName } from "./Icon";
 import logo from "../assets/logo.png";
+import { getCurrentUser } from "../api/users";
 
 export type UserNav = "home" | "lib" | "cal" | "search" | "rules" | "";
 
@@ -13,6 +15,18 @@ const NAV: { key: UserNav; label: string; to: string; icon: IconName }[] = [
 ];
 
 function UserHeader({ active }: { active: UserNav }) {
+  const [userName, setUserName] = useState("사용자");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getCurrentUser(controller.signal)
+      .then((user) => setUserName(user.name?.trim() || "사용자"))
+      .catch(() => {
+        if (!controller.signal.aborted) setUserName("사용자");
+      });
+    return () => controller.abort();
+  }, []);
+
   return (
     <header className="site-header">
       <Link className="site-brand" to="/">
@@ -39,7 +53,7 @@ function UserHeader({ active }: { active: UserNav }) {
           <b>2</b>
         </Link>
         <span className="profile-name">
-          <span className="avatar">소</span>소연님
+          <span className="avatar">{userName.slice(0, 1)}</span>{userName}님
         </span>
       </div>
     </header>

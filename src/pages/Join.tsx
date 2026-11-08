@@ -1,22 +1,68 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Chip from "../components/Chip";
-import Field from "../components/Field.tsx";
 import Icon from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
 import { formatCourseCriteria, formatDate, useCurrentRound } from "../api/currentRound.ts";
+import { applyForEnrollment, EnrollmentApiError, getCurrentEnrollment, type CurrentEnrollment } from "../api/enrollments";
 //피그마12_참가신청
 
 export default function Join() {
   const { round, loading, error } = useCurrentRound();
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
+  const [currentEnrollment, setCurrentEnrollment] = useState<CurrentEnrollment | null>(null);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(true);
+  const [applicationLoading, setApplicationLoading] = useState(false);
+  const [applicationError, setApplicationError] = useState<string | null>(null);
+  const [applicationMessage, setApplicationMessage] = useState<string | null>(null);
   const courses = round?.courses ?? [];
   const selectedCourse = courses.find((course) => course.id === selectedCourseId) ?? null;
 
   useEffect(() => {
-    if (selectedCourseId === null && courses.length > 0) setSelectedCourseId(courses[0].id);
-  }, [courses, selectedCourseId]);
+    const controller = new AbortController();
+    getCurrentEnrollment(controller.signal)
+      .then((enrollment) => setCurrentEnrollment(enrollment))
+      .catch((cause: unknown) => {
+        if (!controller.signal.aborted) {
+          setApplicationError(cause instanceof Error ? cause.message : "참가 정보를 불러오지 못했습니다.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setEnrollmentLoading(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (currentEnrollment) {
+      setSelectedCourseId(currentEnrollment.course.id);
+    } else if (selectedCourseId === null && courses.length > 0) {
+      setSelectedCourseId(courses[0].id);
+    }
+  }, [courses, currentEnrollment, selectedCourseId]);
+
+  async function handleApply() {
+    if (selectedCourseId === null) return;
+    setApplicationLoading(true);
+    setApplicationError(null);
+    setApplicationMessage(null);
+    try {
+      const enrollment = await applyForEnrollment(selectedCourseId);
+      setCurrentEnrollment(enrollment);
+      setApplicationMessage(`${enrollment.course.name} 신청이 완료됐어요.`);
+    } catch (cause) {
+      if (cause instanceof EnrollmentApiError && cause.code === "ALREADY_ENROLLED") {
+        setApplicationError("이미 이번 회차에 참가 신청했어요. 코스 변경은 별도 변경 기능이 필요합니다.");
+        const enrollment = await getCurrentEnrollment().catch(() => null);
+        setCurrentEnrollment(enrollment);
+      } else {
+        setApplicationError(cause instanceof Error ? cause.message : "참가 신청을 완료하지 못했습니다.");
+      }
+    } finally {
+      setApplicationLoading(false);
+    }
+  }
 
   return (
     <UserLayout active="">
@@ -36,8 +82,10 @@ export default function Join() {
             <div className="action-group"></div>
           </div>
         </div>
-        {loading && <p className="text-small text-muted" role="status">회차와 코스 정보를 불러오는 중입니다.</p>}
+        {(loading || enrollmentLoading) && <p className="text-small text-muted" role="status">회차와 참가 정보를 불러오는 중입니다.</p>}
         {error && <p className="text-small" role="alert">{error}</p>}
+        {applicationError && <p className="text-small" role="alert">{applicationError}</p>}
+        {applicationMessage && <p className="text-small" role="status">{applicationMessage}</p>}
         {!loading && !error && courses.length === 0 && <p className="text-small" role="status">현재 회차에 등록된 코스가 없습니다.</p>}
         <div className="grid--three-columns">
           {courses.map((course) => (
@@ -58,33 +106,12 @@ export default function Join() {
                 />
               </span>
               <span className="text-small text-muted">{formatCourseCriteria(course)}{course.family ? " · 가족 합산" : ""}</span>
-              {selectedCourseId === course.id && <Chip k="ok">현재 선택</Chip>}
+              {currentEnrollment?.course.id === course.id && <Chip k="ok">현재 신청 코스</Chip>}
+              {!currentEnrollment && selectedCourseId === course.id && <Chip k="line">선택한 코스</Chip>}
             </label>
           ))}
         </div>
         <div className="grid--two-columns" style={{ alignItems: "start" }}>
-          {selectedCourse?.family && <div className="content-card content-card--mint">
-            <div className="content-card-header">
-              <h2 className="card-title">{selectedCourse.name} · 구성원 명단</h2>
-              <Chip k="line">가족 코스를 고르면 열려요</Chip>
-            </div>
-            <p className="text-small text-muted">
-              가족 구성원을 등록하면 기록이 가족 합산으로 집계돼요. 아동도서
-              2권은 1권으로 환산해요.
-            </p>
-            <div className="grid--two-small-columns">
-              <Field label="구성원 이름" ph="" typ="text" />
-              <Field label="학년 등 메모" ph="" typ="text" opt />
-            </div>
-            <div className="grid--two-small-columns">
-              <Field label="구성원 이름" ph="" typ="text" />
-              <Field label="학년 등 메모" ph="" typ="text" opt />
-            </div>
-            <Link to="/join" className="inline-link">
-              <Icon n="plus" s={16} sw={1.8} />
-              구성원 추가
-            </Link>
-          </div>}
           <div
             style={{ display: "flex", flexDirection: "column", gap: "24px" }}
           >
@@ -128,8 +155,15 @@ export default function Join() {
                 <span className="text-muted">가족 구성원</span>
                 <b>{selectedCourse?.family ? "가족 구성원 등록 필요" : selectedCourse ? "해당 없음" : "-"}</b>
               </div>
-              {round?.applyOpen ? (
-                <Link to="/" className="button button--primary button--extra-large is-large">참가 신청하기</Link>
+              {currentEnrollment ? (
+                <div className="notice notice--warning">
+                  <Icon n="lock" s={18} sw={1.8} />
+                  <div><b>이미 참가 신청했어요.</b><br />현재 코스: {currentEnrollment.course.name}</div>
+                </div>
+              ) : round?.applyOpen ? (
+                <button type="button" className="button button--primary button--extra-large is-large" onClick={() => void handleApply()} disabled={loading || enrollmentLoading || applicationLoading || selectedCourseId === null}>
+                  {applicationLoading ? "신청 중…" : "참가 신청하기"}
+                </button>
               ) : (
                 <button type="button" className="button button--primary button--extra-large is-large" disabled>참가 신청 기간이 아닙니다</button>
               )}
@@ -139,27 +173,14 @@ export default function Join() {
                 가입 없이 로그인 후 바로 신청해요.
               </p>
             </div>
-            <div className="content-card content-card--mint">
+            {currentEnrollment && <div className="content-card content-card--mint">
               <div className="content-card-header">
-                <h2 className="card-title">코스 변경</h2>
+                <h2 className="card-title">현재 참가 신청</h2>
               </div>
-              <p className="text-small text-muted">
-                참가신청 기간 중에는 코스를 바꿀 수 있어요. 지금까지의 기록은
-                그대로 유지돼요.
-              </p>
-              <Link to="/join" className="button">
-                다른 코스로 변경
-              </Link>
-              <div className="notice notice--warning">
-                <Icon n="lock" s={18} sw={1.8} />
-                <div>
-                  <b>이미 신청한 회차예요.</b>
-                  <br />
-                  같은 회차에는 한 번만 신청할 수 있어요. 코스를 바꾸려면 ‘코스
-                  변경’을 이용해 주세요.
-                </div>
-              </div>
-            </div>
+              <p className="text-small text-muted">{currentEnrollment.course.name} · {formatCourseCriteria(currentEnrollment.course)}</p>
+              <Link to="/course-change" className="button">코스 변경 화면 보기</Link>
+              <p className="text-extra-small text-muted">코스 변경 API가 제공되기 전에는 이 화면에서 신청 내용을 저장할 수 없어요.</p>
+            </div>}
           </div>
         </div>
       </section>
