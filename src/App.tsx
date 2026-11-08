@@ -6,6 +6,8 @@ import Join from "./pages/Join.tsx";
 import Certificate from "./pages/Certificate.tsx";
 import Library from "./pages/Library.tsx";
 import LibraryNotes from "./pages/LibraryNotes.tsx";
+import ReadingRecord from "./pages/ReadingRecord.tsx";
+
 import BookRegister from "./pages/BookRegister.tsx";
 import Search from "./pages/Search.tsx";
 import CourseChange from "./pages/CourseChange.tsx";
@@ -31,6 +33,8 @@ export default function App() {
         <Route path="/join" element={<Join />} />
         <Route path="/course-change" element={<CourseChange />} />
         <Route path="/certificate" element={<Certificate />} />
+        <Route path="/records/new" element={<ReadingRecord />} />
+
         <Route path="/register" element={<BookRegister />} />
         <Route path="/search" element={<Search />} />
       </Routes>
