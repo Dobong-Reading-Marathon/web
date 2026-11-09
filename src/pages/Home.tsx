@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getCurrentUser } from "../api/users";
 import { getBooks, type LibraryBook } from "../api/books";
 import { getCurrentEnrollment } from "../api/enrollments";
+import { formatCourseName } from "../api/currentRound";
 import { getEnrollmentProgress, getReadingCalendar, type EnrollmentProgress, type ReadingCalendar } from "../api/calendar";
 import { apiFetch } from "../api/client";
 import Chip from "../components/Chip";
@@ -91,7 +92,7 @@ export default function Home() {
   return <UserLayout active="home"><main className="home-page">
     {loadError && <p className="home-error" role="alert">{loadError}</p>}
     <section className="home-hero"><Tower w={440} /><div className="home-hero-copy">
-      <span className="home-tag">{progress?.course.name ?? "독서마라톤"}{progress ? ` · ${progress.course.distanceKm}km` : ""}</span>
+      <span className="home-tag">{progress?.course ? formatCourseName(progress.course) : "독서마라톤"}{progress?.course?.distanceKm != null ? ` · ${progress.course.distanceKm}km` : ""}</span>
       <h1>{name}님,<br />오늘도 한 쪽부터</h1>
       <p>{progress ? `결승까지 ${Math.max(0, targetKm - progress.readKm).toFixed(2)}km 남았어요. 승인된 기록만 거리에 반영돼요.` : "오늘 읽은 한 쪽이 완주의 기록이 돼요."}</p>
       <div className="home-actions"><Link to="/records/new" className="home-button light">독서기록 쓰기</Link><Link to="/register" className="home-button outline">도서 등록</Link></div>
