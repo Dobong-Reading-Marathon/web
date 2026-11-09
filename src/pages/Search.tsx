@@ -1,6 +1,7 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useCallback, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import UserLayout from "../components/UserLayout";
+import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import "./Search.css";
 
 type SearchType = "도서명" | "저자" | "서평" | "글귀";
@@ -110,6 +111,10 @@ const TARGETS = [
 ] as const;
 const SORTS = ["정확도순", "읽은 날짜 최신순", "도서명순"] as const;
 const PAGE_SIZE = 4;
+const SEARCH_SPEECH_HINTS = [
+  ...ALL_RESULTS.flatMap((result) => [result.title, result.author]),
+  "도서명", "저자", "서평", "글귀", "검색 결과", "읽은 날짜", "임시저장",
+];
 
 type Target = (typeof TARGETS)[number];
 type Sort = (typeof SORTS)[number];
@@ -157,6 +162,11 @@ export default function Search() {
   const [sort, setSort] = useState<Sort>("정확도순");
   const [page, setPage] = useState(1);
   const [recentSearches, setRecentSearches] = useState<string[]>(getRecentSearches);
+  const appendSpeechToSearch = useCallback((text: string) => {
+    setInputValue((current) => `${current.trim()}${current.trim() ? " " : ""}${text}`);
+  }, []);
+  const { isListening, interimTranscript, speechError, startListening, stopListening } =
+    useSpeechRecognition(appendSpeechToSearch, SEARCH_SPEECH_HINTS);
 
   const matchingResults = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -291,7 +301,13 @@ export default function Search() {
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
             />
-            <button className="mic-button" type="button" aria-label="음성 검색">
+            <button
+              className={`mic-button${isListening ? " is-listening" : ""}`}
+              type="button"
+              aria-label={isListening ? "음성 검색 중지" : "음성 검색 시작"}
+              aria-pressed={isListening}
+              onClick={isListening ? stopListening : startListening}
+            >
               🎙
             </button>
             <button className="primary-button" type="submit">
@@ -313,12 +329,14 @@ export default function Search() {
             ))}
           </div>
 
-          <div className="notice">
+          <div className={`notice${speechError ? " has-error" : ""}`} role="status" aria-live="polite">
             <span aria-hidden="true">🎙</span>
             <p>
-              <strong>음성 검색 안내</strong>
+              <strong>{speechError ? "음성 검색 안내" : isListening ? "듣고 있어요" : "음성 검색 안내"}</strong>
               <br />
-              마이크 권한이 필요해요. 말한 내용은 검색어로만 쓰고 음성 파일은 서버에 저장하지 않아요.
+              {speechError || (isListening
+                ? interimTranscript ? `인식 중: “${interimTranscript}”` : "검색어를 말씀해 주세요."
+                : "마이크 권한이 필요해요. 인식된 글자는 검색어에 입력되며, 음성 처리 방식은 브라우저 음성인식 서비스 설정을 따릅니다.")}
             </p>
           </div>
         </section>
