@@ -1,25 +1,66 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Chip from "../components/Chip";
 import Cover from "../components/Cover";
 import Icon from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
-import { libraryBooks as books } from "../data/libraryBooks";
+import { getBooks, type LibraryBook, type LibraryBookStatus } from "../api/books";
+
+const filters: { label: string; value?: LibraryBookStatus }[] = [
+  { label: "전체" },
+  { label: "임시저장", value: "DRAFT" },
+  { label: "심사 대기", value: "SUBMITTED" },
+  { label: "승인", value: "APPROVED" },
+  { label: "보완요청", value: "REVISION_REQUESTED" },
+  { label: "기록 전", value: "NO_RECORD" },
+];
+
+const statusLabels: Record<LibraryBookStatus, string> = {
+  NO_RECORD: "기록 전",
+  DRAFT: "임시저장",
+  SUBMITTED: "심사 대기",
+  APPROVED: "승인",
+  REVISION_REQUESTED: "보완요청",
+};
+
+const statusKinds: Record<LibraryBookStatus, string> = {
+  NO_RECORD: "outline",
+  DRAFT: "draft",
+  SUBMITTED: "pending",
+  APPROVED: "approved",
+  REVISION_REQUESTED: "fix-requested",
+};
 
 //피그마 2,5
 export default function Library() {
   const [statusFilter, setStatusFilter] = useState("전체");
   const [searchQuery, setSearchQuery] = useState("");
-  const filters = ["전체", "임시저장", "심사 대기", "승인", "보완요청", "기록 전"];
-  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
-  const filteredBooks = books.filter((book) => {
-    const matchesStatus = statusFilter === "전체" || book.status === statusFilter;
-    const searchableText = [book.title, book.author, book.status, ...book.tags]
-      .join(" ")
-      .toLocaleLowerCase();
-    return matchesStatus && (!normalizedQuery || searchableText.includes(normalizedQuery));
-  });
+  const [books, setBooks] = useState<LibraryBook[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const selectedStatus = filters.find((filter) => filter.label === statusFilter)?.value;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      setError("");
+      getBooks({ keyword: searchQuery, status: selectedStatus, signal: controller.signal })
+        .then(setBooks)
+        .catch((reason: unknown) => {
+          if (controller.signal.aborted) return;
+          setError(reason instanceof Error ? reason.message : "내 서재를 불러오지 못했습니다.");
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        });
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchQuery, selectedStatus]);
 
   return (
     <UserLayout active="lib">
@@ -38,7 +79,7 @@ export default function Library() {
                 <Icon n="printer" s={16} sw={1.8} />
                 기록장 인쇄 · PDF
               </Link>
-              <Link to="/books/new" className="button button--primary">
+              <Link to="/register" className="button button--primary">
                 <Icon n="plus" s={16} sw={1.8} />
                 도서 등록
               </Link>
@@ -76,72 +117,47 @@ export default function Library() {
         <div className="chip-list" aria-label="도서 상태 필터">
           {filters.map((filter) => (
             <button
-              key={filter}
+              key={filter.label}
               type="button"
-              className={`status-filter${statusFilter === filter ? " is-active" : ""}`}
-              aria-pressed={statusFilter === filter}
-              onClick={() => setStatusFilter(filter)}
+              className={`status-filter${statusFilter === filter.label ? " is-active" : ""}`}
+              aria-pressed={statusFilter === filter.label}
+              onClick={() => setStatusFilter(filter.label)}
             >
-              {filter} <i>{filter === "전체" ? books.length : books.filter((book) => book.status === filter).length}</i>
+              {filter.label}
             </button>
           ))}
         </div>
-        <div className="grid--three-columns">
-          {filteredBooks.map((book) => (
+        {error && <div className="notice notice--danger" role="alert">{error}</div>}
+        <div className="grid--three-columns" aria-busy={loading}>
+          {books.map((book) => (
             <Link
-              key={book.title}
+              key={book.enrollmentBookId}
               to="/library/notes"
               className="content-card content-card--compact book-card"
               style={{ gap: "14px", color: "#14231F" }}
             >
               <div className="space-between-row" style={{ alignItems: "flex-start" }}>
-                <Cover ch={book.initial} />
-                <span className={`status-chip status-chip--${book.kind}`}>{book.status}</span>
+                <Cover ch={book.title.slice(0, 1) || "책"} />
+                <span className={`status-chip status-chip--${statusKinds[book.status]}`}>{statusLabels[book.status]}</span>
               </div>
               <div>
                 <h3 className="card-title">{book.title}</h3>
                 <p className="text-small text-muted">{book.author}</p>
               </div>
               <div className="chip-list">
-                {book.tags.map((tag) => (
-                  <Chip key={tag} k={tag === "완독" || tag === "아동도서" ? "info" : "line"}>{tag}</Chip>
-                ))}
+                {book.libraryOwned && <Chip k="line">소장도서</Chip>}
+                {!book.libraryOwned && <Chip k="line">소장 아님</Chip>}
+                {book.completed && <Chip k="info">완독</Chip>}
+                {book.children && <Chip k="info">아동도서</Chip>}
               </div>
               <div className="progress-bar">
-                <i style={{ width: `${book.progress}%` }}></i>
+                <i style={{ width: `${book.totalPages > 0 ? Math.min(100, book.readPages / book.totalPages * 100) : 0}%` }}></i>
               </div>
-              <p className="text-small text-muted">읽은 쪽 {book.pages}</p> {/*변수값으로 변경해야 하는지 확인 필요*/}
-              <p className="text-extra-small text-muted">{book.note}</p> {/*변수값으로 변경해야 하는지 확인 필요*/}
+              <p className="text-small text-muted">읽은 쪽 {book.readPages} / {book.totalPages}쪽</p>
             </Link>
           ))}
-          {filteredBooks.length === 0 && <p className="text-muted">해당 상태의 도서가 없어요.</p>}
-        </div>
-        <div
-          className="content-card content-card--dark content-card--compact"
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "16px",
-            borderRadius: "999px",
-            padding: "14px 14px 14px 28px",
-          }}
-        >
-          <div>
-            <b>임시저장 1건을 선택했어요</b>
-            <p className="text-small" style={{ color: "#D5E8DD" }}>
-              제출하면 관리자 접수함으로 가고 상태가 ‘심사 대기’로 바뀌어요.
-            </p>
-          </div>
-          <div className="action-group">
-            <Link to="/library" className="button button--green is-small">
-              선택 해제
-            </Link>
-            <Link to="/library" className="button button--light is-small">
-              선택한 기록 일괄 제출
-            </Link>
-          </div>
+          {!loading && !error && books.length === 0 && <p className="text-muted">조건에 맞는 도서가 없어요.</p>}
+          {loading && <p className="text-muted">내 서재를 불러오는 중이에요.</p>}
         </div>
         <Link to="/search" className="inline-link">
           전체 기록 통합 검색
