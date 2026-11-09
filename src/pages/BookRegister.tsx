@@ -312,7 +312,7 @@ export default function BookRegister() {
       });
 
       if (navigateToRecord) {
-        navigate("/records/new");
+        navigate(`/records/new?book=${registeredBook.id}`);
         return;
       }
 

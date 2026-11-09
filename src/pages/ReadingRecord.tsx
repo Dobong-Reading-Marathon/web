@@ -1,47 +1,96 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import UserLayout from "../components/UserLayout";
+import { getBooks, type LibraryBook } from "../api/books";
+import {
+  createReadingLog,
+  submitReadingLogs,
+  updateReadingLog,
+  type ReadingLog,
+} from "../api/readingLogs";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import "./ReadingRecord.css";
 
+// 쪽수는 빈칸을 허용하려고 글자로 둡니다. 저장할 때 숫자로 바꿉니다.
 type Draft = {
-  book: string;
-  startPage: number;
-  endPage: number;
+  enrollmentBookId: string;
+  startPage: string;
+  endPage: string;
   readDate: string;
   quote: string;
   review: string;
 };
 
-const INITIAL_DRAFT: Draft = {
-  book: "데미안",
-  startPage: 1,
-  endPage: 140,
-  readDate: "2026-10-11",
+const EMPTY_DRAFT: Draft = {
+  enrollmentBookId: "",
+  startPage: "",
+  endPage: "",
+  readDate: "",
   quote: "",
-  review:
-    "싱글래리와 두 세계 사이에서 흔들리는 장면을 읽으며 내 지난 시간인 것처럼 보였다. 데미안이 건네는 말은 많은 정답이 아니라 질문에 가까웠고, 그래서 책을 덮고도 한참을 생각하게 됐다.",
+  review: "",
 };
 
-const BOOKS = [
-  { title: "데미안", author: "헤르만 헤세", pages: 248 },
-  { title: "소년이 온다", author: "한강", pages: 215 },
-];
+const MIN_REVIEW_LENGTH = 500;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-const DRAFT_KEY = "reading-record-draft";
+// 서버와 같은 방식으로 글자 수를 셉니다 (이모지 한 개 = 1자).
+function countCharacters(text: string): number {
+  return Array.from(text).length;
+}
+
+function todayString(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function toPage(value: string): number | null {
+  if (!/^\d+$/.test(value)) return null;
+  const page = Number(value);
+  return page >= 1 ? page : null;
+}
+
+// 수정할 수 있는 상태: 임시저장, 보완요청
+function isEditable(log: ReadingLog | null): boolean {
+  return !log || log.status === "DRAFT" || log.status === "REVISION_REQUESTED";
+}
 
 export default function ReadingRecord() {
+  const [searchParams] = useSearchParams();
+  // 도서 등록 직후(?book=)나 독서달력(?date=)에서 오면 그 값만 미리 채웁니다.
   const [draft, setDraft] = useState<Draft>(() => {
-    try {
-      const saved = localStorage.getItem(DRAFT_KEY);
-      return saved ? { ...INITIAL_DRAFT, ...JSON.parse(saved) } : INITIAL_DRAFT;
-    } catch {
-      return INITIAL_DRAFT;
-    }
+    const book = searchParams.get("book") ?? "";
+    const date = searchParams.get("date") ?? "";
+    return {
+      ...EMPTY_DRAFT,
+      enrollmentBookId: /^\d+$/.test(book) ? book : "",
+      readDate: DATE_PATTERN.test(date) && date <= todayString() ? date : "",
+    };
   });
+  const [books, setBooks] = useState<LibraryBook[]>([]);
+  const [booksLoading, setBooksLoading] = useState(true);
+  const [booksError, setBooksError] = useState("");
+  const [savedLog, setSavedLog] = useState<ReadingLog | null>(null);
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const selectedBook =
-    BOOKS.find((book) => book.title === draft.book) ?? BOOKS[0];
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getBooks({ signal: controller.signal })
+      .then((items) => setBooks(items))
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setBooksError(error instanceof Error ? error.message : "내서재 도서를 불러오지 못했어요.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setBooksLoading(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  const selectedBook = books.find((book) => String(book.enrollmentBookId) === draft.enrollmentBookId);
+  const editable = isEditable(savedLog);
+  const locked = busy || !editable;
+
   const appendSpeechToReview = useCallback((text: string) => {
     const dictatedText = text
       .replace(/줄\s*바꿈/g, "\n")
@@ -59,8 +108,7 @@ export default function ReadingRecord() {
   }, []);
   const { isListening, interimTranscript, speechError, startListening, stopListening } =
     useSpeechRecognition(appendSpeechToReview, [
-      selectedBook.title,
-      selectedBook.author,
+      ...(selectedBook ? [selectedBook.title, selectedBook.author] : []),
       "줄바꿈",
       "줄 바꿈",
       "마침표",
@@ -69,49 +117,100 @@ export default function ReadingRecord() {
       "느낌표",
     ]);
 
-  const pagesRead = Math.max(0, draft.endPage - draft.startPage + 1);
-  const reviewLength = draft.review.length;
-  const reviewProgress = Math.min((reviewLength / 500) * 100, 100);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-    } catch {
-      // 브라우저 저장소를 사용할 수 없는 환경에서는 자동저장을 건너뜁니다.
-    }
-  }, [draft]);
+  const startPage = toPage(draft.startPage);
+  const endPage = toPage(draft.endPage);
+  const pagesRead = startPage && endPage && endPage >= startPage ? endPage - startPage + 1 : 0;
+  const reviewLength = countCharacters(draft.review);
+  const reviewProgress = Math.min((reviewLength / MIN_REVIEW_LENGTH) * 100, 100);
 
   function updateDraft<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
     setMessage("");
   }
 
-  function handleSaveDraft() {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-    setMessage("임시저장했어요. 이 브라우저에서 다시 열면 내용을 불러와요.");
+  // 저장 전에 화면에서 먼저 확인합니다. 문제가 없으면 빈 문자열을 돌려줍니다.
+  function validate(forSubmit: boolean): string {
+    if (!selectedBook) return "기록할 도서를 골라 주세요.";
+    if (!startPage || !endPage) return "시작 쪽과 끝 쪽을 1 이상의 숫자로 입력해 주세요.";
+    if (endPage < startPage) return "끝 쪽은 시작 쪽보다 같거나 커야 해요.";
+    if (endPage > selectedBook.totalPages) return `끝 쪽은 전체 쪽수(${selectedBook.totalPages}쪽)를 넘을 수 없어요.`;
+    if (!DATE_PATTERN.test(draft.readDate)) return "읽은 날짜를 입력해 주세요.";
+    if (draft.readDate > todayString()) return "읽은 날짜는 오늘이나 그 이전이어야 해요.";
+    if (forSubmit && reviewLength < MIN_REVIEW_LENGTH) {
+      return `서평을 ${MIN_REVIEW_LENGTH - reviewLength}자 더 작성해 주세요.`;
+    }
+    return "";
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  // 처음 저장이면 새 기록을 만들고, 이미 저장했으면 같은 기록을 고칩니다.
+  async function save(): Promise<ReadingLog> {
+    const fields = {
+      startPage: startPage!,
+      endPage: endPage!,
+      readDate: draft.readDate,
+      quote: draft.quote,
+      review: draft.review,
+    };
+    const log = savedLog
+      ? await updateReadingLog(savedLog.id, fields)
+      : await createReadingLog({ enrollmentBookId: selectedBook!.enrollmentBookId, ...fields });
+    setSavedLog(log);
+    return log;
+  }
+
+  async function handleSaveDraft() {
+    const problem = validate(false);
+    if (problem) {
+      setMessage(problem);
+      return;
+    }
+    setBusy(true);
+    try {
+      await save();
+      setMessage("임시저장했어요. 내서재 수첩형에서 이어서 볼 수 있어요.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "임시저장하지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (draft.endPage < draft.startPage) {
-        setMessage("끝 쪽은 시작 쪽보다 같거나 커야 해요.");
-        return;
+    const problem = validate(true);
+    if (problem) {
+      setMessage(problem);
+      return;
     }
+    if (!window.confirm("독서기록을 제출할까요? 제출한 뒤에는 심사가 끝날 때까지 고칠 수 없어요.")) return;
 
-    if (reviewLength < 500) {
-        setMessage(`서평을 ${500 - reviewLength}자 더 작성해 주세요.`);
-        return;
+    setBusy(true);
+    let saved: ReadingLog | null = null;
+    try {
+      saved = await save();
+      await submitReadingLogs([saved.id]);
+      setSavedLog({ ...saved, status: "SUBMITTED" });
+      setMessage("제출했어요. 심사 결과는 알림과 내서재에서 확인할 수 있어요.");
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "다시 시도해 주세요.";
+      // 저장은 됐지만 제출만 실패한 경우를 구분해서 알려 줍니다.
+      setMessage(saved ? `임시저장은 했지만 제출하지 못했어요. ${reason}` : reason);
+    } finally {
+      setBusy(false);
     }
+  }
 
-    const confirmed = window.confirm("독서기록을 제출할까요?");
-    if (!confirmed) return;
-
-    setMessage("제출 요청을 완료했어요.");
-    }
+  function handleClear() {
+    const hadSaved = savedLog !== null;
+    setDraft(EMPTY_DRAFT);
+    setSavedLog(null);
+    setMessage(hadSaved
+      ? "입력을 지웠어요. 이미 저장한 기록은 내서재 수첩형에 남아 있어요."
+      : "입력을 지웠어요.");
+  }
 
   async function handleCopy() {
-    const text = `${draft.book}\n${draft.quote}\n${draft.review}`;
+    const text = `${selectedBook?.title ?? ""}\n${draft.quote}\n${draft.review}`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -122,9 +221,10 @@ export default function ReadingRecord() {
   }
 
   function handleOpenMail() {
-    const subject = encodeURIComponent(`독서기록 사본 - ${draft.book}`);
+    const title = selectedBook?.title ?? "";
+    const subject = encodeURIComponent(`독서기록 사본 - ${title}`);
     const body = encodeURIComponent(
-      `${draft.book}\n읽은 쪽: ${draft.startPage}–${draft.endPage}\n\n글귀:\n${draft.quote}\n\n서평:\n${draft.review}`,
+      `${title}\n읽은 쪽: ${draft.startPage}–${draft.endPage}\n\n글귀:\n${draft.quote}\n\n서평:\n${draft.review}`,
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }
@@ -154,23 +254,40 @@ export default function ReadingRecord() {
           <section className="record-panel">
             <div className="record-panel-heading">
               <h2>기록 정보</h2>
-              <span className="record-draft-time">임시저장은 이 브라우저에 보관돼요</span>
+              <span className="record-draft-time">
+                {savedLog ? "저장한 기록이에요" : "임시저장하면 내서재에 보관돼요"}
+              </span>
             </div>
 
             <form className="record-form" onSubmit={handleSubmit}>
               <label className="record-field">
                 <span>도서 <b>필수</b></span>
                 <select
-                  value={draft.book}
-                  onChange={(event) => updateDraft("book", event.target.value)}
+                  value={draft.enrollmentBookId}
+                  onChange={(event) => updateDraft("enrollmentBookId", event.target.value)}
+                  disabled={booksLoading || locked || savedLog !== null}
+                  required
                 >
-                  {BOOKS.map((book) => (
-                    <option key={book.title} value={book.title}>
-                      {book.title} · {book.author} (전체 {book.pages}쪽)
+                  <option value="">
+                    {booksLoading ? "내서재 도서를 불러오는 중이에요" : "기록할 도서를 골라 주세요"}
+                  </option>
+                  {books.map((book) => (
+                    <option key={book.enrollmentBookId} value={book.enrollmentBookId}>
+                      {book.title} · {book.author} (전체 {book.totalPages}쪽)
                     </option>
                   ))}
                 </select>
               </label>
+
+              {booksError && <p className="record-message" role="alert">{booksError}</p>}
+              {!booksLoading && !booksError && books.length === 0 && (
+                <p className="record-message" role="status">
+                  내서재에 등록한 도서가 없어요. 먼저 도서를 등록해 주세요.
+                </p>
+              )}
+              {savedLog && editable && (
+                <p className="record-small-note">저장한 기록은 도서를 바꿀 수 없어요. 다른 책은 입력을 지우고 새로 작성해요.</p>
+              )}
 
               <Link className="record-add-book" to="/register">
                 ＋ 새 도서 등록
@@ -181,12 +298,12 @@ export default function ReadingRecord() {
                   <span>시작 쪽 <b>필수</b></span>
                   <input
                     type="number"
+                    inputMode="numeric"
                     min="1"
-                    max={selectedBook.pages}
+                    max={selectedBook?.totalPages}
                     value={draft.startPage}
-                    onChange={(event) =>
-                      updateDraft("startPage", Number(event.target.value))
-                    }
+                    onChange={(event) => updateDraft("startPage", event.target.value)}
+                    disabled={locked}
                     required
                   />
                 </label>
@@ -195,12 +312,12 @@ export default function ReadingRecord() {
                   <span>끝 쪽 <b>필수</b></span>
                   <input
                     type="number"
-                    min={draft.startPage}
-                    max={selectedBook.pages}
+                    inputMode="numeric"
+                    min={startPage ?? 1}
+                    max={selectedBook?.totalPages}
                     value={draft.endPage}
-                    onChange={(event) =>
-                      updateDraft("endPage", Number(event.target.value))
-                    }
+                    onChange={(event) => updateDraft("endPage", event.target.value)}
+                    disabled={locked}
                     required
                   />
                 </label>
@@ -209,23 +326,27 @@ export default function ReadingRecord() {
                   <span>읽은 날짜 <b>필수</b></span>
                   <input
                     type="date"
+                    max={todayString()}
                     value={draft.readDate}
                     onChange={(event) => updateDraft("readDate", event.target.value)}
+                    disabled={locked}
                     required
                   />
                 </label>
               </div>
 
-              <div className="record-reading-notice">
-                <span aria-hidden="true">✓</span>
-                <p>
-                  <strong className="record-reading-highlight">
-                    이번 기록 {pagesRead}쪽
-                  </strong>
-                  {" · "}이 책 누적 {pagesRead}쪽 / {selectedBook.pages}쪽. 끝 쪽이 전체 쪽수에
-                  닿으면 완독 권수가 올라가요.
-                </p>
-              </div>
+              {selectedBook && (
+                <div className="record-reading-notice">
+                  <span aria-hidden="true">✓</span>
+                  <p>
+                    <strong className="record-reading-highlight">
+                      이번 기록 {pagesRead}쪽
+                    </strong>
+                    {" · "}이 책 지금까지 {selectedBook.readPages}쪽 / {selectedBook.totalPages}쪽. 끝 쪽이 전체 쪽수에
+                    닿으면 완독 권수가 올라가요.
+                  </p>
+                </div>
+              )}
 
               <label className="record-field">
                 <span>
@@ -236,6 +357,7 @@ export default function ReadingRecord() {
                   placeholder="마음에 남은 문장을 적어요"
                   value={draft.quote}
                   onChange={(event) => updateDraft("quote", event.target.value)}
+                  disabled={locked}
                 />
               </label>
 
@@ -250,6 +372,7 @@ export default function ReadingRecord() {
                   aria-label={isListening ? "음성 입력 중지" : "음성 입력 시작"}
                   aria-pressed={isListening}
                   onClick={isListening ? stopListening : startListening}
+                  disabled={locked}
                 >
                     🎙 {isListening ? "듣는 중 · 중지" : "음성 입력"}
                 </button>
@@ -261,13 +384,14 @@ export default function ReadingRecord() {
                 value={draft.review}
                 onChange={(event) => updateDraft("review", event.target.value)}
                 placeholder="책을 읽고 느낀 점을 적어요"
+                disabled={locked}
               />
 
               <div className="record-character-row">
-                <strong>{reviewLength} / 500자</strong>
+                <strong>{reviewLength} / {MIN_REVIEW_LENGTH}자</strong>
                 <span>
-                  {reviewLength < 500
-                    ? `500자까지 ${500 - reviewLength}자 남았어요`
+                  {reviewLength < MIN_REVIEW_LENGTH
+                    ? `${MIN_REVIEW_LENGTH}자까지 ${MIN_REVIEW_LENGTH - reviewLength}자 남았어요`
                     : "제출 기준을 채웠어요"}
                 </span>
               </div>
@@ -300,18 +424,30 @@ export default function ReadingRecord() {
                 </p>
               )}
 
-              <div className="record-form-actions">
-                <button
-                  className="record-button record-button-outline"
-                  type="button"
-                  onClick={handleSaveDraft}
-                >
-                  임시저장
-                </button>
-                <button className="record-button record-button-primary" type="submit">
-                  온라인 제출
-                </button>
-              </div>
+              {editable ? (
+                <div className="record-form-actions">
+                  <button
+                    className="record-button record-button-outline"
+                    type="button"
+                    onClick={handleSaveDraft}
+                    disabled={busy}
+                  >
+                    {busy ? "저장 중" : "임시저장"}
+                  </button>
+                  <button className="record-button record-button-primary" type="submit" disabled={busy}>
+                    온라인 제출
+                  </button>
+                </div>
+              ) : (
+                <div className="record-form-actions">
+                  <Link className="record-button record-button-outline" to="/library/notes">
+                    내서재에서 보기
+                  </Link>
+                  <button className="record-button record-button-primary" type="button" onClick={handleClear}>
+                    새 기록 쓰기
+                  </button>
+                </div>
+              )}
             </form>
           </section>
 
@@ -329,8 +465,7 @@ export default function ReadingRecord() {
             <section className="record-panel record-submit-panel">
               <h2>제출 방법</h2>
               <p>
-                온라인 제출 → 관리자 검수함 → 상태 ‘심사 대기’. 실제 제출은
-                서버 연결 후 동작해요.
+                온라인 제출 → 관리자 검수함 → 상태 ‘심사 대기’.
               </p>
               <div className="record-status-flow" aria-label="제출 상태">
                 <span>임시</span>
@@ -367,17 +502,14 @@ export default function ReadingRecord() {
 
             <section className="record-panel record-delete-panel">
               <p>
-                내 기록은 언제든 수정·삭제할 수 있어요. 승인된 기록은 수정할 수
-                없어요.
+                임시저장·보완요청 상태의 기록은 내서재 수첩형에서 수정·삭제할 수 있어요.
+                심사 중이거나 승인된 기록은 바꿀 수 없어요.
               </p>
               <button
                 className="record-delete-button"
                 type="button"
-                onClick={() => {
-                  localStorage.removeItem(DRAFT_KEY);
-                  setDraft(INITIAL_DRAFT);
-                  setMessage("이 브라우저에 저장된 임시 입력을 지웠어요.");
-                }}
+                onClick={handleClear}
+                disabled={busy}
               >
                 기록 입력 지우기
               </button>

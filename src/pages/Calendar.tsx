@@ -182,7 +182,7 @@ export default function Calendar() {
               <div className="content-card">
                 <div className="content-card-header"><h2 className="card-title">{selectedLabel}</h2></div>
                 {loading ? <p className="text-muted">기록을 불러오는 중이에요.</p> : selectedDay?.logs.length ? <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>{selectedDay.logs.map(renderLog)}</div> : <p className="text-muted">선택한 날짜에 등록된 독서 기록이 없어요.</p>}
-                {!loading && <div className="action-group"><Link to="/records/new" className="button">이날 기록 추가</Link></div>}
+                {!loading && <div className="action-group"><Link to={`/records/new?date=${selectedKey}`} className="button">이날 기록 추가</Link></div>}
               </div>
               <div className="content-card content-card--mint">
                 <div className="content-card-header"><h2 className="card-title">월별 독서 요약</h2></div>
