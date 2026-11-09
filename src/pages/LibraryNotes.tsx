@@ -259,22 +259,26 @@ export default function LibraryNotes() {
                 <div className="progress-bar is-orange"><i style={{ width: `${Math.min(reviewWords / 500 * 100, 100)}%` }} /></div>
                 <p className="text-small text-muted">{detailLoading ? "기록을 불러오는 중이에요." : selectedDetail?.review || "아직 쓰지 않았어요."}</p>
               </div>
-              <div className="action-group record-detail-actions">
-                {selectedEditable && (
+              {/* 고칠 수 있는 기록에만 버튼을 보이고, 나머지는 이유만 안내합니다. */}
+              {selectedEditable ? (
+                <div className="action-group record-detail-actions">
                   <Link to={`/records/${selectedRecord.id}/edit`} className="button button--primary">
                     <Icon n="pen" s={15} /> {selectedRecord.statusCode === "REVISION_REQUESTED" ? "고쳐서 다시 제출" : "이어서 작성"}
                   </Link>
-                )}
-                <button
-                  type="button"
-                  className="button button--danger-outline"
-                  onClick={handleDelete}
-                  disabled={!selectedEditable || deleting}
-                >
-                  <Icon n="trash" s={15} /> {deleting ? "삭제 중" : "삭제"}
-                </button>
-              </div>
-              <p className="text-extra-small text-muted">심사 중이거나 승인된 기록은 수정하거나 삭제할 수 없어요.</p>
+                  <button
+                    type="button"
+                    className="button button--danger-outline"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    <Icon n="trash" s={15} /> {deleting ? "삭제 중" : "삭제"}
+                  </button>
+                </div>
+              ) : (
+                <p className="text-extra-small text-muted">
+                  {selectedRecord.statusCode === "APPROVED" ? "승인된" : "심사 중인"} 기록은 수정하거나 삭제할 수 없어요.
+                </p>
+              )}
             </aside>
           </div>
         ) : (
