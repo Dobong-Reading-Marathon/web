@@ -87,3 +87,14 @@ export async function submitReadingLogs(readingLogIds: number[]): Promise<number
   const response = await send<{ submittedIds: number[] }>("/api/reading-logs/submit", "POST", { readingLogIds });
   return response.submittedIds;
 }
+
+/** 독서기록 삭제 (F-0406). 임시저장·보완요청 상태일 때만 됩니다. 성공하면 본문 없이 204로 응답합니다. */
+export async function deleteReadingLog(id: number): Promise<void> {
+  let response: Response;
+  try {
+    response = await apiFetch(`/api/reading-logs/${id}`, { method: "DELETE" });
+  } catch {
+    throw new Error("독서기록 서버에 연결할 수 없어요. 서버 실행 상태와 주소를 확인해 주세요.");
+  }
+  if (!response.ok) throw await readApiError(response);
+}

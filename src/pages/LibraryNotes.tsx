@@ -8,6 +8,7 @@ import UserLayout from "../components/UserLayout";
 import { getBooks, type LibraryBookStatus } from "../api/books";
 import { getReadingCalendar, getReadingLogDetail, type ReadingLogDetail } from "../api/calendar";
 import { getCurrentEnrollment } from "../api/enrollments";
+import { deleteReadingLog } from "../api/readingLogs";
 
 type ReadingRecord = {
   id: number;
@@ -65,6 +66,7 @@ export default function LibraryNotes() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -151,6 +153,26 @@ export default function LibraryNotes() {
   const selectedRecord = records.find((record) => record.id === selectedId);
   const selectedEditable = selectedRecord ? isEditable(selectedRecord.statusCode) : false;
   const reviewWords = reviewCharCount(selectedDetail?.review);
+
+  async function handleDelete() {
+    if (!selectedRecord || !selectedEditable) return;
+    if (!window.confirm(`${selectedRecord.date} ‘${selectedRecord.title}’ 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) return;
+
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteReadingLog(selectedRecord.id);
+      // 목록에서 빼고, 같은 자리의 다음 기록을 고릅니다.
+      const index = records.findIndex((record) => record.id === selectedRecord.id);
+      const nextRecords = records.filter((record) => record.id !== selectedRecord.id);
+      setRecords(nextRecords);
+      setSelectedId(nextRecords[Math.min(index, nextRecords.length - 1)]?.id ?? null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "기록을 삭제하지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <UserLayout active="lib">
@@ -243,8 +265,13 @@ export default function LibraryNotes() {
                     <Icon n="pen" s={15} /> {selectedRecord.statusCode === "REVISION_REQUESTED" ? "고쳐서 다시 제출" : "이어서 작성"}
                   </Link>
                 )}
-                <button type="button" className="button button--danger-outline" disabled={selectedRecord.status === "승인"}>
-                  <Icon n="trash" s={15} /> 삭제
+                <button
+                  type="button"
+                  className="button button--danger-outline"
+                  onClick={handleDelete}
+                  disabled={!selectedEditable || deleting}
+                >
+                  <Icon n="trash" s={15} /> {deleting ? "삭제 중" : "삭제"}
                 </button>
               </div>
               <p className="text-extra-small text-muted">심사 중이거나 승인된 기록은 수정하거나 삭제할 수 없어요.</p>
