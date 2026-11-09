@@ -5,6 +5,8 @@ export interface AdminSubmission {
   id: number;
   participantName: string;
   bookTitle: string;
+  review?: string | null;
+  reviewLength?: number;
   startPage: number;
   endPage: number;
   readDate: string;
