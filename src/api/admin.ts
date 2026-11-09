@@ -2,7 +2,7 @@ import { apiFetch } from "./client";
 import type { CurrentRound } from "./currentRound";
 
 export type AdminCompletionStatus = "IN_PROGRESS" | "PENDING_APPROVAL" | "COMPLETED";
-export type AdminLogStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REVISION_REQUESTED";
+export type AdminLogStatus = "DRAFT" | "SAVED" | "SUBMITTED" | "APPROVED" | "REVISION_REQUESTED";
 export interface ProgressMeasure { current: number; target: number; remaining: number; percent: number }
 export interface AdminProgress {
   pages: ProgressMeasure;
