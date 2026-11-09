@@ -4,6 +4,12 @@ export type ReadingStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REVISION_REQUE
 
 export interface EnrollmentProgress {
   enrollmentId: number;
+  round: { id: number; year: number; roundNo: number };
+  course: { id: number; name: string; family: boolean; distanceKm: number };
+  status: "IN_PROGRESS" | "PENDING_APPROVAL" | "COMPLETED";
+  pages: { current: number; target: number; remaining: number; percent: number };
+  reviews: { current: number; target: number; remaining: number; percent: number };
+  books: { current: number; target: number; remaining: number; percent: number };
   readKm: number;
   completedBooks: number;
 }

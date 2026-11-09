@@ -8,6 +8,7 @@ import Library from "./pages/Library.tsx";
 import LibraryNotes from "./pages/LibraryNotes.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
+import PrivacyPolicyPage from "./pages/PrivacyPolicy.tsx";
 import Notifications from "./pages/Notifications.tsx";
 
 import ReadingRecord from "./pages/ReadingRecord.tsx";
@@ -15,6 +16,7 @@ import ReadingRecord from "./pages/ReadingRecord.tsx";
 import BookRegister from "./pages/BookRegister.tsx";
 import Search from "./pages/Search.tsx";
 import CourseChange from "./pages/CourseChange.tsx";
+import HomeEntry from "./pages/HomeEntry.tsx";
 
 
 function ScrollToTop() {
@@ -30,6 +32,7 @@ export default function App() {
     <div className="app-shell app-shell--full">
       <ScrollToTop />
       <Routes>
+        <Route path="/" element={<HomeEntry />} />
         <Route path="/library" element={<Library />} />
         <Route path="/library/notes" element={<LibraryNotes />} />
         <Route path="/calendar" element={<Calendar />} />
@@ -39,6 +42,7 @@ export default function App() {
         <Route path="/certificate" element={<Certificate />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/records/new" element={<ReadingRecord />} />
 

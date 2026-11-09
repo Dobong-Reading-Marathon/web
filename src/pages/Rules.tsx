@@ -3,9 +3,10 @@ import { Link } from "react-router-dom";
 import Chip from "../components/Chip.tsx";
 import Icon from "../components/Icon.tsx";
 import Tower from "../components/Tower.tsx";
-import UserLayout from "../components/UserLayout.tsx";
+import UserLayout, { PlainLayout } from "../components/UserLayout.tsx";
 import { formatDate, useCurrentRound } from "../api/currentRound.ts";
 import { getCurrentEnrollment, type CurrentEnrollment } from "../api/enrollments";
+import { CurrentUserApiError, getCurrentUser } from "../api/users";
 
 //피그마11_대회요강
 export default function Rules() {
@@ -13,26 +14,35 @@ export default function Rules() {
   const [enrollment, setEnrollment] = useState<CurrentEnrollment | null>(null);
   const [enrollmentLoading, setEnrollmentLoading] = useState(true);
   const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
+  const [authState, setAuthState] = useState<"loading" | "member" | "guest">("loading");
 
   useEffect(() => {
     const controller = new AbortController();
-    getCurrentEnrollment(controller.signal)
-      .then(setEnrollment)
+    getCurrentUser(controller.signal)
+      .then(() => { if (!controller.signal.aborted) setAuthState("member"); })
       .catch((cause: unknown) => {
-        if (!controller.signal.aborted) {
-          setEnrollmentError(cause instanceof Error ? cause.message : "참가 정보를 불러오지 못했습니다.");
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setEnrollmentLoading(false);
+        if (controller.signal.aborted) return;
+        setAuthState(cause instanceof CurrentUserApiError && cause.status !== 401 ? "member" : "guest");
+        if (!(cause instanceof CurrentUserApiError) || cause.status === 401) setEnrollmentLoading(false);
       });
     return () => controller.abort();
   }, []);
 
-  return (
-    <UserLayout active="rules">
+  useEffect(() => {
+    if (authState !== "member") return;
+    const controller = new AbortController();
+    getCurrentEnrollment(controller.signal)
+      .then(setEnrollment)
+      .catch((cause: unknown) => {
+        if (!controller.signal.aborted) setEnrollmentError(cause instanceof Error ? cause.message : "참가 정보를 불러오지 못했습니다.");
+      })
+      .finally(() => { if (!controller.signal.aborted) setEnrollmentLoading(false); });
+    return () => controller.abort();
+  }, [authState]);
+
+  const content = (
       <section className="content-section is-top">
-        <div className="page-banner">
+        <div className={`page-banner${authState === "guest" ? " guest-rules-banner" : ""}`}>
           <Tower w={380} />
           <div className="page-heading-row">
             <div>
@@ -41,12 +51,12 @@ export default function Rules() {
                 운영 기간과 코스 기준, 작성 요령을 한눈에 확인해요.
               </p>
             </div>
-            <div className="action-group">
+            {authState === "member" && <div className="action-group">
               <Link to={enrollment ? "/course-change" : "/join"} className="button button--primary">
                 {enrollmentLoading ? "참가 정보 확인 중…" : enrollment ? "코스 변경" : "코스 선택 · 참가 신청"}
                 <Icon n="arrow" s={16} sw={1.8} />
               </Link>
-            </div>
+            </div>}
           </div>
         </div>
         {enrollmentError && <p className="text-extra-small text-muted" role="status">{enrollmentError}</p>}
@@ -179,6 +189,10 @@ export default function Rules() {
           </div>
         </div>
       </section>
-    </UserLayout>
   );
+
+  if (authState === "loading") return <main role="status" style={{ padding: "48px max(40px, calc((100% - 1200px) / 2))", color: "#66756d" }}>대회 안내를 준비하고 있어요…</main>;
+  return authState === "guest"
+    ? <PlainLayout>{content}</PlainLayout>
+    : <UserLayout active="rules">{content}</UserLayout>;
 }
