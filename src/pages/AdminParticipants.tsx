@@ -23,6 +23,7 @@ const logInfo = (status: string): { label: string; chip: ChipKind } => {
     case "SUBMITTED": return { label: "심사 대기", chip: "wait" };
     case "APPROVED": return { label: "승인", chip: "ok" };
     case "REVISION_REQUESTED": return { label: "보완요청", chip: "fix" };
+    case "SAVED": return { label: "저장", chip: "ok" };
     default: return { label: "기록 없음", chip: "line" };
   }
 };

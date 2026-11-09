@@ -1,6 +1,7 @@
 import { apiFetch } from "./client";
 
-export type ReadingStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REVISION_REQUESTED" | string;
+// SAVED: 서평 500자 미만으로 제출해서 심사 없이 저장된 기록
+export type ReadingStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REVISION_REQUESTED" | "SAVED" | string;
 
 export interface EnrollmentProgress {
   enrollmentId: number;

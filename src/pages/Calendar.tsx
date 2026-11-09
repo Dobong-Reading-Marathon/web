@@ -18,6 +18,7 @@ import {
 function statusPresentation(status: string) {
   switch (status) {
     case "APPROVED": return { label: "승인", chip: "ok" as const, indicator: "approved" };
+    case "SAVED": return { label: "저장", chip: "ok" as const, indicator: "approved" };
     case "SUBMITTED": return { label: "심사 대기", chip: "wait" as const, indicator: "pending" };
     case "REVISION_REQUESTED": return { label: "보완요청", chip: "fix" as const, indicator: "fix-requested" };
     default: return { label: "임시저장", chip: "draft" as const, indicator: "draft" };
@@ -172,7 +173,7 @@ export default function Calendar() {
               <div className="chip-list" style={{ alignItems: "center" }}>
                 <span className="text-small"><b className="status-indicator--draft">●</b> 임시저장</span>
                 <span className="text-small"><b className="status-indicator--pending">●</b> 심사 대기</span>
-                <span className="text-small"><b className="status-indicator--approved">●</b> 승인</span>
+                <span className="text-small"><b className="status-indicator--approved">●</b> 승인·저장</span>
                 <span className="text-small"><b className="status-indicator--fix-requested">●</b> 보완요청</span>
               </div>
               <p className="text-extra-small text-muted">칸의 글씨는 책 제목과 읽은 쪽이에요.</p>

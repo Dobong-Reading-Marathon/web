@@ -12,6 +12,7 @@ const filters: { label: string; value?: LibraryBookStatus }[] = [
   { label: "임시저장", value: "DRAFT" },
   { label: "심사 대기", value: "SUBMITTED" },
   { label: "승인", value: "APPROVED" },
+  { label: "저장", value: "SAVED" },
   { label: "보완요청", value: "REVISION_REQUESTED" },
   { label: "기록 전", value: "NO_RECORD" },
 ];
@@ -22,6 +23,7 @@ const statusLabels: Record<LibraryBookStatus, string> = {
   SUBMITTED: "심사 대기",
   APPROVED: "승인",
   REVISION_REQUESTED: "보완요청",
+  SAVED: "저장",
 };
 
 const statusKinds: Record<LibraryBookStatus, string> = {
@@ -30,6 +32,7 @@ const statusKinds: Record<LibraryBookStatus, string> = {
   SUBMITTED: "pending",
   APPROVED: "approved",
   REVISION_REQUESTED: "fix-requested",
+  SAVED: "approved", // 승인과 같은 초록색
 };
 
 //피그마 2,5

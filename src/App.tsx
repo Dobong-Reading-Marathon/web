@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Route, Routes, useLocation, useParams } from "react-router-dom";
 import Calendar from "./pages/Calendar.tsx";
 import Rules from "./pages/Rules.tsx";
 import Join from "./pages/Join.tsx";
@@ -29,6 +29,12 @@ function ScrollToTop() {
   return null;
 }
 
+// 새 기록과 수정 화면이 서로 바뀔 때 입력 상태가 남지 않도록 key로 화면을 새로 만듭니다.
+function ReadingRecordEdit() {
+  const { id } = useParams();
+  return <ReadingRecord key={id} editId={Number(id)} />;
+}
+
 export default function App() {
   return (
     <div className="app-shell app-shell--full">
@@ -46,7 +52,8 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/records/new" element={<ReadingRecord />} />
+        <Route path="/records/new" element={<ReadingRecord key="new" />} />
+        <Route path="/records/:id/edit" element={<ReadingRecordEdit />} />
 
         <Route path="/register" element={<BookRegister />} />
         <Route path="/search" element={<Search />} />

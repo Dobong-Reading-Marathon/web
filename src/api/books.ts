@@ -5,7 +5,8 @@ export type LibraryBookStatus =
   | "DRAFT"
   | "SUBMITTED"
   | "APPROVED"
-  | "REVISION_REQUESTED";
+  | "REVISION_REQUESTED"
+  | "SAVED";
 
 export interface LibraryBook {
   enrollmentBookId: number;
