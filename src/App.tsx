@@ -17,6 +17,8 @@ import BookRegister from "./pages/BookRegister.tsx";
 import Search from "./pages/Search.tsx";
 import CourseChange from "./pages/CourseChange.tsx";
 import HomeEntry from "./pages/HomeEntry.tsx";
+import AdminOverview from "./pages/AdminOverview.tsx";
+import AdminParticipants from "./pages/AdminParticipants.tsx";
 
 
 function ScrollToTop() {
@@ -48,6 +50,8 @@ export default function App() {
 
         <Route path="/register" element={<BookRegister />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/admin" element={<AdminOverview />} />
+        <Route path="/admin/participants" element={<AdminParticipants />} />
       </Routes>
     </div>
   );
