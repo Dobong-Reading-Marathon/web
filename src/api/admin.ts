@@ -76,6 +76,14 @@ export interface AdminEnrollmentDetail {
   progress: AdminProgress;
   books: AdminEnrollmentBook[];
 }
+export interface CompletionApprovalResult {
+  enrollmentId: number;
+  status: "COMPLETED";
+  certificateNo: string;
+  verifiedLoanCount: number;
+  approvalNote: string | null;
+  approvedAt: string;
+}
 
 async function requestJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await apiFetch(path, { signal });
@@ -109,4 +117,31 @@ export function getAdminParticipants(options: {
 
 export function getAdminEnrollmentDetail(enrollmentId: number, signal?: AbortSignal): Promise<AdminEnrollmentDetail> {
   return requestJson<AdminEnrollmentDetail>(`/api/admin/enrollments/${enrollmentId}`, signal);
+}
+
+async function readAdminError(response: Response) {
+  let message = response.status === 401 ? "관리자 로그인이 필요합니다." : `관리자 요청에 실패했습니다. (${response.status})`;
+  try { const body = await response.json() as { message?: string }; if (body.message) message = body.message; } catch { /* Keep status fallback. */ }
+  return new Error(message);
+}
+
+export async function approveAdminCompletion(enrollmentId: number, request: { verifiedLoanCount: number; note?: string }): Promise<CompletionApprovalResult> {
+  const response = await apiFetch(`/api/admin/enrollments/${enrollmentId}/completion-approval`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) throw await readAdminError(response);
+  return response.json() as Promise<CompletionApprovalResult>;
+}
+
+export async function exportAdminParticipants(options: { roundId: number; keyword?: string; courseId?: number; status?: AdminCompletionStatus | "" }): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (options.keyword?.trim()) params.set("keyword", options.keyword.trim());
+  if (options.courseId) params.set("courseId", String(options.courseId));
+  if (options.status) params.set("status", options.status);
+  const query = params.size ? `?${params.toString()}` : "";
+  const response = await apiFetch(`/api/admin/rounds/${options.roundId}/enrollments/export${query}`);
+  if (!response.ok) throw await readAdminError(response);
+  return response.blob();
 }

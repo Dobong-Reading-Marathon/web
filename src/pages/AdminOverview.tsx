@@ -71,7 +71,7 @@ export default function AdminOverview() {
       <article><span>완주 승인자</span><b>{loading ? "—" : `${number(metrics?.completers ?? 0)}명`}</b></article>
       <article><span>완주율</span><b>{loading ? "—" : `${rate.toFixed(1)}%`}</b>{!loading && <small>{number(metrics?.completers ?? 0)} / {number(metrics?.participants ?? 0)}명</small>}</article>
       <article><span>누적 서평 수</span><b>{loading ? "—" : `${number(metrics?.reviews ?? 0)}편`}</b></article>
-      <article><span>우수 서평 수</span><b>9편</b><small>예시 수치</small></article>
+      <article><span>우수 서평 수</span><b>—</b><small>우수 서평 조회 API 없음</small></article>
     </section>
     <section className="admin-overview-lower">
       <article className="admin-panel admin-history-panel"><header><h2>역대 대회 비교</h2><span className="admin-example-badge">과거 수치는 예시예요</span></header><div className="admin-chart-legend"><span><i /> 참가자</span><span><i /> 완주자</span></div><div className="admin-history-chart">{history.map((row) => <div className="admin-chart-column" key={row.year}><div className="admin-bars"><i style={{ height: `${Math.max(8, row.participants / chartMaximum * 92)}%` }} /><i style={{ height: `${Math.max(8, row.completers / chartMaximum * 92)}%` }} /></div><b>{row.year} 회차</b></div>)}</div><div className="admin-history-table-wrap"><table className="admin-history-table"><thead><tr><th>회차</th><th>참가자</th><th>완주자</th><th>완주율</th></tr></thead><tbody>{history.map((row) => <tr key={row.year}><th>{row.year} 회차</th><td>{number(row.participants)}명</td><td>{number(row.completers)}명</td><td>{row.rate.toFixed(1)}%</td></tr>)}</tbody></table></div></article>
