@@ -78,7 +78,7 @@ export function UserFooter() {
   return (
     <footer className="site-footer">
       <span>도봉도서관 독서마라톤 · 문의는 도서관 담당자에게</span>
-      <Link to="/signup">개인정보 처리방침 전문 보기</Link>
+      <Link to="/privacy-policy">개인정보 처리방침 전문 보기</Link>
     </footer>
   );
 }

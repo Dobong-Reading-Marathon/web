@@ -8,6 +8,7 @@ import Library from "./pages/Library.tsx";
 import LibraryNotes from "./pages/LibraryNotes.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
+import PrivacyPolicyPage from "./pages/PrivacyPolicy.tsx";
 import Notifications from "./pages/Notifications.tsx";
 
 import ReadingRecord from "./pages/ReadingRecord.tsx";
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/certificate" element={<Certificate />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/records/new" element={<ReadingRecord />} />
 
