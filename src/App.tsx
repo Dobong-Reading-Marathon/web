@@ -15,7 +15,7 @@ import ReadingRecord from "./pages/ReadingRecord.tsx";
 import BookRegister from "./pages/BookRegister.tsx";
 import Search from "./pages/Search.tsx";
 import CourseChange from "./pages/CourseChange.tsx";
-import Home from "./pages/Home.tsx";
+import HomeEntry from "./pages/HomeEntry.tsx";
 
 
 function ScrollToTop() {
@@ -31,7 +31,7 @@ export default function App() {
     <div className="app-shell app-shell--full">
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<HomeEntry />} />
         <Route path="/library" element={<Library />} />
         <Route path="/library/notes" element={<LibraryNotes />} />
         <Route path="/calendar" element={<Calendar />} />
