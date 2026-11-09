@@ -89,3 +89,8 @@ export function formatCourseCriteria(course: Course): string {
 
   return `${distance}km · ${pages}쪽 · ${course.targetBooks}권 · 서평 ${course.targetReviews}편`;
 }
+
+export function formatCourseName(course: Pick<Course, "name" | "family">): string {
+  const baseName = course.name.replace(/\s*\(가족\)\s*/g, "").trim();
+  return course.family ? `${baseName} (가족)` : baseName;
+}
