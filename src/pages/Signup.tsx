@@ -1,27 +1,10 @@
-import {useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { PlainLayout } from "../components/UserLayout";
 import { useNavigate } from "react-router-dom";
+import { AuthApiError, getPrivacyPolicy, signup, type PrivacyPolicy } from "../api/auth";
+import { storeAuthToken } from "../api/client";
 import "./Signup.css";
-
-const PRIVACY_SECTIONS = [
-  {
-    title: "1. 수집 항목",
-    body: "이름, 전화번호, 비밀번호, 개인정보 동의 여부 · 선택: 대출회원번호, 독서 독려 알림 동의 여부",
-  },
-  {
-    title: "2. 수집·이용 목적",
-    body: "[도서관 제공 문안]",
-  },
-  {
-    title: "3. 보유 및 이용 기간",
-    body: "[도서관 제공 문안]",
-  },
-  {
-    title: "4. 동의 거부 권리와 불이익",
-    body: "[도서관 제공 문안]",
-  },
-];
 
 function normalizePhone(value: string) {
   return value.replace(/[\s.-]/g, "");
@@ -88,10 +71,36 @@ export default function Signup() {
   const [reminderAgreed, setReminderAgreed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
+  const [privacyPolicy, setPrivacyPolicy] = useState<PrivacyPolicy | null>(null);
+  const [policyError, setPolicyError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const loadPrivacyPolicy = useCallback(async (signal?: AbortSignal) => {
+    setPolicyError("");
+    try {
+      const policy = await getPrivacyPolicy(signal);
+      setPrivacyPolicy(policy);
+    } catch (error) {
+      if (!signal?.aborted) {
+        setPolicyError(error instanceof Error ? error.message : "개인정보 처리방침을 불러오지 못했어요.");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadPrivacyPolicy(controller.signal);
+    return () => controller.abort();
+  }, [loadPrivacyPolicy]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!privacyPolicy) {
+      setMessage(policyError || "개인정보 처리방침을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
 
     const nextErrors = getSignupErrors({
       phone,
@@ -107,8 +116,36 @@ export default function Signup() {
 
     if (Object.keys(nextErrors).length > 0) return;
 
-    // 화면·입력 검증 단계: 가입 API는 아직 호출하지 않아요.
-    navigate("/join");
+    setIsSubmitting(true);
+    try {
+      const session = await signup({
+        name: name.trim(),
+        phone: normalizePhone(phone),
+        password,
+        ...(loanMemberNo.trim() ? { loanMemberNo: loanMemberNo.trim() } : {}),
+        privacyAgreed: true,
+        reminderAgreed,
+        privacyPolicyVersion: privacyPolicy.version,
+      });
+      storeAuthToken(session.token, true);
+      navigate("/join");
+    } catch (error) {
+      if (error instanceof AuthApiError) {
+        if (error.code === "PRIVACY_POLICY_OUTDATED") {
+          setPrivacyAgreed(false);
+          setErrors((current) => ({ ...current, privacyAgreed: "변경된 처리방침을 확인하고 다시 동의해 주세요." }));
+          await loadPrivacyPolicy();
+        } else if (error.fieldErrors.length > 0) {
+          setErrors((current) => ({
+            ...current,
+            ...Object.fromEntries(error.fieldErrors.map(({ field, message: fieldMessage }) => [field, fieldMessage])),
+          }));
+        }
+      }
+      setMessage(error instanceof Error ? error.message : "회원가입을 완료하지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -288,8 +325,8 @@ export default function Signup() {
                 </p>
               )}
 
-              <button className="signup-submit-button" type="submit">
-                가입하기
+              <button className="signup-submit-button" type="submit" disabled={isSubmitting || !privacyPolicy}>
+                {isSubmitting ? "가입 중…" : "가입하기"}
               </button>
 
               <p className="signup-form-note">
@@ -305,15 +342,19 @@ export default function Signup() {
           <aside className="auth-panel privacy-panel">
             <h2>개인정보 처리방침 전문</h2>
             <p className="privacy-intro">
-              개인정보 처리방침을 확인하고 동의해 주세요.
+              {privacyPolicy
+                ? `시행일 ${privacyPolicy.effectiveFrom} · 버전 ${privacyPolicy.version}. 내용을 확인하고 동의해 주세요.`
+                : policyError || "현재 시행 중인 처리방침을 불러오는 중이에요."}
             </p>
 
-            {PRIVACY_SECTIONS.map((section) => (
+            {privacyPolicy?.sections.map((section) => (
               <section className="privacy-section" key={section.title}>
                 <h3>{section.title}</h3>
                 <p>{section.body}</p>
               </section>
             ))}
+
+            {policyError && <button className="signup-home-button" type="button" onClick={() => void loadPrivacyPolicy()}>다시 불러오기</button>}
 
             <Link className="signup-home-button" to="/">
               홈으로 돌아가기
