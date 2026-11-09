@@ -19,6 +19,7 @@ import CourseChange from "./pages/CourseChange.tsx";
 import HomeEntry from "./pages/HomeEntry.tsx";
 import AdminOverview from "./pages/AdminOverview.tsx";
 import AdminParticipants from "./pages/AdminParticipants.tsx";
+import AdminParticipantRecords from "./pages/AdminParticipantRecords.tsx";
 import AdminReviews from "./pages/AdminReviews.tsx";
 import AdminRounds from "./pages/AdminRounds.tsx";
 import AdminLogin from "./pages/AdminLogin.tsx";
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/participants" element={<AdminParticipants />} />
+        <Route path="/admin/participants/:enrollmentId/records" element={<AdminParticipantRecords />} />
         <Route path="/admin/reviews" element={<AdminReviews />} />
         <Route path="/admin/rounds" element={<AdminRounds />} />
       </Routes>
