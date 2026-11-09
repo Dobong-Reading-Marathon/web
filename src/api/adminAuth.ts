@@ -1,4 +1,4 @@
-import { apiFetch, clearAuthToken, storeAuthToken } from "./client";
+import { apiFetch, clearAuthToken, storeAdminAuthToken } from "./client";
 
 export interface AdminUser { id: number; name: string }
 interface AdminSession { token: string; expiresAt: string; admin: AdminUser }
@@ -15,7 +15,7 @@ export async function adminLogin(loginId: string, password: string): Promise<Adm
     throw new Error(message);
   }
   const session = await response.json() as AdminSession;
-  storeAuthToken(session.token, true);
+  storeAdminAuthToken(session.token);
   return session.admin;
 }
 
