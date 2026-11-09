@@ -52,9 +52,14 @@ function formatPages(startPage: number, endPage: number) {
   return `${startPage}–${endPage}쪽`;
 }
 
-// 임시저장·보완요청·저장 상태만 수정·삭제할 수 있습니다 (서버 규칙과 같음).
+// 수정은 임시저장·보완요청·저장 상태에서 됩니다 (서버 규칙과 같음).
 function isEditable(statusCode: string) {
   return statusCode === "DRAFT" || statusCode === "REVISION_REQUESTED" || statusCode === "SAVED";
+}
+
+// 삭제는 제출 전(임시저장) 기록만 됩니다. 한 번 제출한 기록은 지울 수 없습니다 (서버 규칙과 같음).
+function isDeletable(statusCode: string) {
+  return statusCode === "DRAFT";
 }
 
 // 수정 버튼 이름: 보완요청은 고쳐서 다시 제출, 저장은 서평을 채워 제출, 임시저장은 이어서 작성
@@ -161,10 +166,11 @@ export default function LibraryNotes() {
 
   const selectedRecord = records.find((record) => record.id === selectedId);
   const selectedEditable = selectedRecord ? isEditable(selectedRecord.statusCode) : false;
+  const selectedDeletable = selectedRecord ? isDeletable(selectedRecord.statusCode) : false;
   const reviewWords = reviewCharCount(selectedDetail?.review);
 
   async function handleDelete() {
-    if (!selectedRecord || !selectedEditable) return;
+    if (!selectedRecord || !selectedDeletable) return;
     if (!window.confirm(`${selectedRecord.date} ‘${selectedRecord.title}’ 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) return;
 
     setDeleting(true);
@@ -274,19 +280,24 @@ export default function LibraryNotes() {
                   <Link to={`/records/${selectedRecord.id}/edit`} className="button button--primary">
                     <Icon n="pen" s={15} /> {editLabels[selectedRecord.statusCode]}
                   </Link>
-                  <button
-                    type="button"
-                    className="button button--danger-outline"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                  >
-                    <Icon n="trash" s={15} /> {deleting ? "삭제 중" : "삭제"}
-                  </button>
+                  {selectedDeletable && (
+                    <button
+                      type="button"
+                      className="button button--danger-outline"
+                      onClick={handleDelete}
+                      disabled={deleting}
+                    >
+                      <Icon n="trash" s={15} /> {deleting ? "삭제 중" : "삭제"}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <p className="text-extra-small text-muted">
                   {selectedRecord.statusCode === "APPROVED" ? "승인된" : "심사 중인"} 기록은 수정하거나 삭제할 수 없어요.
                 </p>
+              )}
+              {selectedEditable && !selectedDeletable && (
+                <p className="text-extra-small text-muted">제출한 기록은 삭제할 수 없어요.</p>
               )}
             </aside>
           </div>

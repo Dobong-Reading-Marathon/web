@@ -583,7 +583,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
 
             <section className="record-panel record-delete-panel">
               <p>
-                임시저장·저장·보완요청 상태의 기록은 내서재 수첩형에서 수정·삭제할 수 있어요.
+                임시저장·저장·보완요청 상태의 기록은 내서재 수첩형에서 수정할 수 있어요. 삭제는 제출 전(임시저장) 기록만 돼요.
                 심사 중이거나 승인된 기록은 바꿀 수 없어요.
               </p>
               <button
