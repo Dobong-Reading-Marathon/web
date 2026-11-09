@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import UserLayout from "../components/UserLayout";
+import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import "./ReadingRecord.css";
 
 type Draft = {
@@ -39,9 +40,34 @@ export default function ReadingRecord() {
     }
   });
   const [message, setMessage] = useState("");
-
   const selectedBook =
     BOOKS.find((book) => book.title === draft.book) ?? BOOKS[0];
+  const appendSpeechToReview = useCallback((text: string) => {
+    const dictatedText = text
+      .replace(/줄\s*바꿈/g, "\n")
+      .replace(/마침표/g, ".")
+      .replace(/쉼표/g, ",")
+      .replace(/물음표/g, "?")
+      .replace(/느낌표/g, "!")
+      .replace(/[ \t]+([.,!?])/g, "$1");
+
+    setDraft((current) => {
+      const separator = current.review && !current.review.endsWith("\n") && !dictatedText.startsWith("\n") ? " " : "";
+      return { ...current, review: `${current.review}${separator}${dictatedText}` };
+    });
+    setMessage("");
+  }, []);
+  const { isListening, interimTranscript, speechError, startListening, stopListening } =
+    useSpeechRecognition(appendSpeechToReview, [
+      selectedBook.title,
+      selectedBook.author,
+      "줄바꿈",
+      "줄 바꿈",
+      "마침표",
+      "쉼표",
+      "물음표",
+      "느낌표",
+    ]);
 
   const pagesRead = Math.max(0, draft.endPage - draft.startPage + 1);
   const reviewLength = draft.review.length;
@@ -218,8 +244,14 @@ export default function ReadingRecord() {
                     서평 <b>제출할 때 필요해요</b>
                     <small>임시저장만 할 때는 비워도 돼요</small>
                 </label>
-                <button className="record-voice-badge" type="button">
-                    🎙 음성 입력
+                <button
+                  className={`record-voice-badge${isListening ? " is-listening" : ""}`}
+                  type="button"
+                  aria-label={isListening ? "음성 입력 중지" : "음성 입력 시작"}
+                  aria-pressed={isListening}
+                  onClick={isListening ? stopListening : startListening}
+                >
+                    🎙 {isListening ? "듣는 중 · 중지" : "음성 입력"}
                 </button>
                 </div>
 
@@ -251,12 +283,14 @@ export default function ReadingRecord() {
                 <span style={{ width: `${reviewProgress}%` }} />
               </div>
 
-              <div className="record-voice-note">
+              <div className="record-voice-note" role="status" aria-live="polite">
                 <span className="record-voice-icon" aria-hidden="true">🎙</span>
                 <p>
-                    <strong>음성 명령 “줄바꿈”, “마침표”</strong>
+                    <strong>{speechError ? "음성 입력 안내" : isListening ? "듣고 있어요" : "음성 명령 “줄바꿈”, “마침표”"}</strong>
                     <br />
-                    말은 문장에 맞춰 자동으로 정리돼요. 음성 파일은 저장하지 않아요.
+                    {speechError || (isListening
+                      ? interimTranscript ? `인식 중: “${interimTranscript}”` : "서평 내용을 말씀해 주세요."
+                      : "‘줄바꿈’, ‘마침표’, ‘쉼표’, ‘물음표’, ‘느낌표’라고 말하면 기호로 입력돼요. 음성 처리 방식은 브라우저 음성인식 서비스 설정을 따릅니다.")}
                 </p>
                 </div>
 

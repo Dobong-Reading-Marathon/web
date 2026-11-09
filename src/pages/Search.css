@@ -662,9 +662,19 @@
   background: #fde8e5;
 }
 
+.search-page .mic-button.is-listening {
+  color: #fff;
+  background: #b64e43;
+  box-shadow: 0 0 0 4px rgb(182 78 67 / 16%);
+}
+
 .search-page .notice {
   color: #8d453d;
   background: #fde9e6;
+}
+
+.search-page .notice.has-error {
+  border: 1px solid #e8aaa2;
 }
 
 .search-page .notice > span {

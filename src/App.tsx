@@ -21,6 +21,7 @@ import AdminOverview from "./pages/AdminOverview.tsx";
 import AdminParticipants from "./pages/AdminParticipants.tsx";
 import AdminReviews from "./pages/AdminReviews.tsx";
 import AdminRounds from "./pages/AdminRounds.tsx";
+import AdminLogin from "./pages/AdminLogin.tsx";
 
 
 function ScrollToTop() {
@@ -52,6 +53,7 @@ export default function App() {
 
         <Route path="/register" element={<BookRegister />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/participants" element={<AdminParticipants />} />
         <Route path="/admin/reviews" element={<AdminReviews />} />

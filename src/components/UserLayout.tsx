@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Icon, { type IconName } from "./Icon";
 import logo from "../assets/logo.png";
 import { getCurrentUser } from "../api/users";
+import { logout } from "../api/auth";
 
 export type UserNav = "home" | "lib" | "cal" | "search" | "rules" | "";
 
@@ -15,6 +16,7 @@ const NAV: { key: UserNav; label: string; to: string; icon: IconName }[] = [
 ];
 
 function UserHeader({ active }: { active: UserNav }) {
+  const navigate = useNavigate();
   const [userName, setUserName] = useState("사용자");
 
   useEffect(() => {
@@ -26,6 +28,12 @@ function UserHeader({ active }: { active: UserNav }) {
       });
     return () => controller.abort();
   }, []);
+
+  async function handleLogout() {
+    if (!window.confirm("로그아웃할까요?")) return;
+    try { await logout(); } catch { /* The local session is cleared even when the server is unreachable. */ }
+    navigate("/", { replace: true });
+  }
 
   return (
     <header className="site-header">
@@ -55,6 +63,7 @@ function UserHeader({ active }: { active: UserNav }) {
         <span className="profile-name">
           <span className="avatar">{userName.slice(0, 1)}</span>{userName}님
         </span>
+        <button className="user-logout-button" type="button" onClick={() => void handleLogout()}>로그아웃</button>
       </div>
     </header>
   );
@@ -69,6 +78,7 @@ export function PlainHeader() {
       <nav className="primary-navigation" aria-label="주요 메뉴">
         <span style={{ flex: 1 }} />
         <Link to="/rules">대회 요강</Link>
+        <Link to="/admin/login" className="guest-admin-login-link">관리자 로그인</Link>
       </nav>
     </header>
   );

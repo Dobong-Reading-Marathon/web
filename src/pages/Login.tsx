@@ -1,15 +1,19 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PlainLayout } from "../components/UserLayout";
+import { login } from "../api/auth";
+import { storeAuthToken } from "../api/client";
 import "./Login.css";
 
 export default function Login() {
+  const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!phone.trim() || !password) {
@@ -17,7 +21,20 @@ export default function Login() {
       return;
     }
 
-    setMessage("로그인 기능은 아직 연결되지 않았어요.");
+    setIsSubmitting(true);
+    setMessage("");
+    try {
+      const session = await login(phone.trim(), password, keepSignedIn);
+      storeAuthToken(session.token, keepSignedIn);
+      if (session.user.mustChangePassword) {
+        window.alert("임시 비밀번호로 로그인했어요. 보안을 위해 새 비밀번호로 변경해 주세요.");
+      }
+      navigate("/join");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "로그인할 수 없어요. 다시 시도해 주세요.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -100,8 +117,8 @@ export default function Login() {
 
               {message && <p className="auth-message" role="alert">{message}</p>}
 
-              <button className="login-submit-button" type="submit">
-                로그인
+              <button className="login-submit-button" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "로그인 중…" : "로그인"}
               </button>
             </form>
 
