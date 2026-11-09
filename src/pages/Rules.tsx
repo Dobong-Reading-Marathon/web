@@ -4,7 +4,7 @@ import Chip from "../components/Chip.tsx";
 import Icon from "../components/Icon.tsx";
 import Tower from "../components/Tower.tsx";
 import UserLayout, { PlainLayout } from "../components/UserLayout.tsx";
-import { formatDate, useCurrentRound } from "../api/currentRound.ts";
+import { formatCourseName, formatDate, useCurrentRound } from "../api/currentRound.ts";
 import { getCurrentEnrollment, type CurrentEnrollment } from "../api/enrollments";
 import { CurrentUserApiError, getCurrentUser } from "../api/users";
 
@@ -174,7 +174,7 @@ export default function Rules() {
               <tbody>
                 {round?.courses.map((course) => (
                   <tr key={course.id}>
-                    <td><b>{course.name}{course.family ? " (가족)" : ""}</b></td>
+                    <td><b>{formatCourseName(course)}</b></td>
                     <td className="numeric-value">{course.distanceKm}km</td>
                     <td className="numeric-value">{new Intl.NumberFormat("ko-KR").format(course.targetPages)}쪽</td>
                     <td className="numeric-value">{course.targetBooks}권</td>

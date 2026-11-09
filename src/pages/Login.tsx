@@ -29,7 +29,7 @@ export default function Login() {
       if (session.user.mustChangePassword) {
         window.alert("임시 비밀번호로 로그인했어요. 보안을 위해 새 비밀번호로 변경해 주세요.");
       }
-      navigate("/join");
+      navigate("/", { replace: true });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "로그인할 수 없어요. 다시 시도해 주세요.");
     } finally {

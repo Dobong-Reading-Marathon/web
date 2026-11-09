@@ -4,7 +4,7 @@ import Chip from "../components/Chip";
 import Icon from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
-import { formatCourseCriteria, formatDate, useCurrentRound } from "../api/currentRound.ts";
+import { formatCourseCriteria, formatCourseName, formatDate, useCurrentRound } from "../api/currentRound.ts";
 import { applyForEnrollment, EnrollmentApiError, getCurrentEnrollment, type CurrentEnrollment } from "../api/enrollments";
 //피그마12_참가신청
 
@@ -50,7 +50,7 @@ export default function Join() {
     try {
       const enrollment = await applyForEnrollment(selectedCourseId);
       setCurrentEnrollment(enrollment);
-      setApplicationMessage(`${enrollment.course.name} 신청이 완료됐어요.`);
+      setApplicationMessage(`${formatCourseName(enrollment.course)} 신청이 완료됐어요.`);
     } catch (cause) {
       if (cause instanceof EnrollmentApiError && cause.code === "ALREADY_ENROLLED") {
         setApplicationError("이미 이번 회차에 참가 신청했어요. 코스 변경은 별도 변경 기능이 필요합니다.");
@@ -94,7 +94,7 @@ export default function Join() {
               className={`content-card content-card--compact course-option${selectedCourseId === course.id ? " is-selected" : ""}`}
             >
               <span className="space-between-row">
-                <b className="card-title">{course.name}{course.family ? " (가족)" : ""}</b>
+                <b className="card-title">{formatCourseName(course)}</b>
                 <input
                   type="radio"
                   name="course"
@@ -131,7 +131,7 @@ export default function Join() {
                 <div>
                   <span className="step-number">2</span>
                   <b>코스 선택</b>
-                  <span>{selectedCourse?.name ?? (loading ? "불러오는 중…" : "선택된 코스 없음")}</span>
+                  <span>{selectedCourse ? formatCourseName(selectedCourse) : loading ? "불러오는 중…" : "선택된 코스 없음"}</span>
                 </div>
                 <div className="is-active">
                   <span className="step-number">3</span>
@@ -145,7 +145,7 @@ export default function Join() {
               </div>
               <div className="data-row" style={{ justifyContent: "space-between" }}>
                 <span className="text-muted">코스</span>
-                <b>{selectedCourse?.name ?? "-"}</b>
+                <b>{selectedCourse ? formatCourseName(selectedCourse) : "-"}</b>
               </div>
               <div className="data-row" style={{ justifyContent: "space-between" }}>
                 <span className="text-muted">완주 기준</span>
@@ -158,7 +158,7 @@ export default function Join() {
               {currentEnrollment ? (
                 <div className="notice notice--warning">
                   <Icon n="lock" s={18} sw={1.8} />
-                  <div><b>이미 참가 신청했어요.</b><br />현재 코스: {currentEnrollment.course.name}</div>
+                  <div><b>이미 참가 신청했어요.</b><br />현재 코스: {formatCourseName(currentEnrollment.course)}</div>
                 </div>
               ) : round?.applyOpen ? (
                 <button type="button" className="button button--primary button--extra-large is-large" onClick={() => void handleApply()} disabled={loading || enrollmentLoading || applicationLoading || selectedCourseId === null}>
@@ -177,7 +177,7 @@ export default function Join() {
               <div className="content-card-header">
                 <h2 className="card-title">현재 참가 신청</h2>
               </div>
-              <p className="text-small text-muted">{currentEnrollment.course.name} · {formatCourseCriteria(currentEnrollment.course)}</p>
+              <p className="text-small text-muted">{formatCourseName(currentEnrollment.course)} · {formatCourseCriteria(currentEnrollment.course)}</p>
               <Link to="/course-change" className="button">코스 변경 화면 보기</Link>
               <p className="text-extra-small text-muted">코스 변경 API가 제공되기 전에는 이 화면에서 신청 내용을 저장할 수 없어요.</p>
             </div>}
