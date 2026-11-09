@@ -32,6 +32,7 @@ const statusLabels: Record<LibraryBookStatus | string, string> = {
   SUBMITTED: "심사 대기",
   APPROVED: "승인",
   REVISION_REQUESTED: "보완요청",
+  SAVED: "저장",
 };
 
 const statusKinds: Record<string, ChipKind> = {
@@ -39,6 +40,7 @@ const statusKinds: Record<string, ChipKind> = {
   SUBMITTED: "wait",
   APPROVED: "ok",
   REVISION_REQUESTED: "fix",
+  SAVED: "ok", // 승인과 같은 초록색
 };
 
 function formatDate(date: string) {
@@ -50,10 +52,17 @@ function formatPages(startPage: number, endPage: number) {
   return `${startPage}–${endPage}쪽`;
 }
 
-// 임시저장·보완요청 상태만 수정·삭제할 수 있습니다 (서버 규칙과 같음).
+// 임시저장·보완요청·저장 상태만 수정·삭제할 수 있습니다 (서버 규칙과 같음).
 function isEditable(statusCode: string) {
-  return statusCode === "DRAFT" || statusCode === "REVISION_REQUESTED";
+  return statusCode === "DRAFT" || statusCode === "REVISION_REQUESTED" || statusCode === "SAVED";
 }
+
+// 수정 버튼 이름: 보완요청은 고쳐서 다시 제출, 저장은 서평을 채워 제출, 임시저장은 이어서 작성
+const editLabels: Record<string, string> = {
+  REVISION_REQUESTED: "고쳐서 다시 제출",
+  SAVED: "수정 · 서평 제출",
+  DRAFT: "이어서 작성",
+};
 
 function reviewCharCount(review: string | null | undefined) {
   return Array.from(review ?? "").length;
@@ -263,7 +272,7 @@ export default function LibraryNotes() {
               {selectedEditable ? (
                 <div className="action-group record-detail-actions">
                   <Link to={`/records/${selectedRecord.id}/edit`} className="button button--primary">
-                    <Icon n="pen" s={15} /> {selectedRecord.statusCode === "REVISION_REQUESTED" ? "고쳐서 다시 제출" : "이어서 작성"}
+                    <Icon n="pen" s={15} /> {editLabels[selectedRecord.statusCode]}
                   </Link>
                   <button
                     type="button"
@@ -290,6 +299,7 @@ export default function LibraryNotes() {
           <div className="review-status-flow">
             <Chip k="draft">임시저장</Chip><span>→</span><Chip k="wait">심사 대기</Chip><span>→</span>
             <Chip k="ok">승인</Chip><span className="text-muted">또는</span><Chip k="fix">보완요청</Chip>
+            <span className="text-muted">· 서평 500자 미만은 제출하면 바로</span><Chip k="ok">저장</Chip>
           </div>
         </div>
       </section>

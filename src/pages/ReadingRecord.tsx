@@ -50,9 +50,9 @@ function toPage(value: string): number | null {
   return page >= 1 ? page : null;
 }
 
-// 수정할 수 있는 상태: 임시저장, 보완요청
+// 수정할 수 있는 상태: 임시저장, 보완요청, 저장
 function isEditable(log: ReadingLog | null): boolean {
-  return !log || log.status === "DRAFT" || log.status === "REVISION_REQUESTED";
+  return !log || log.status === "DRAFT" || log.status === "REVISION_REQUESTED" || log.status === "SAVED";
 }
 
 /**
@@ -166,6 +166,8 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
   const pagesRead = startPage && endPage && endPage >= startPage ? endPage - startPage + 1 : 0;
   const reviewLength = countCharacters(draft.review);
   const reviewProgress = Math.min((reviewLength / MIN_REVIEW_LENGTH) * 100, 100);
+  // 서평이 500자 이상이면 심사를 받는 "서평 제출", 아니면 바로 저장되는 "제출하기"
+  const reviewReady = reviewLength >= MIN_REVIEW_LENGTH;
 
   function updateDraft<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -173,16 +175,14 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
   }
 
   // 저장 전에 화면에서 먼저 확인합니다. 문제가 없으면 빈 문자열을 돌려줍니다.
-  function validate(forSubmit: boolean): string {
+  // 서평은 선택입니다. 500자 이상이면 심사(서평 제출), 미만이면 심사 없이 저장(제출하기)됩니다.
+  function validate(): string {
     if (!selectedBook) return "기록할 도서를 골라 주세요.";
     if (!startPage || !endPage) return "시작 쪽과 끝 쪽을 1 이상의 숫자로 입력해 주세요.";
     if (endPage < startPage) return "끝 쪽은 시작 쪽보다 같거나 커야 해요.";
     if (endPage > selectedBook.totalPages) return `끝 쪽은 전체 쪽수(${selectedBook.totalPages}쪽)를 넘을 수 없어요.`;
     if (!DATE_PATTERN.test(draft.readDate)) return "읽은 날짜를 입력해 주세요.";
     if (draft.readDate > todayString()) return "읽은 날짜는 오늘이나 그 이전이어야 해요.";
-    if (forSubmit && reviewLength < MIN_REVIEW_LENGTH) {
-      return `서평을 ${MIN_REVIEW_LENGTH - reviewLength}자 더 작성해 주세요.`;
-    }
     return "";
   }
 
@@ -203,7 +203,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
   }
 
   async function handleSaveDraft() {
-    const problem = validate(false);
+    const problem = validate();
     if (problem) {
       setMessage(problem);
       return;
@@ -221,20 +221,29 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const problem = validate(true);
+    const problem = validate();
     if (problem) {
       setMessage(problem);
       return;
     }
-    if (!window.confirm("독서기록을 제출할까요? 제출한 뒤에는 심사가 끝날 때까지 고칠 수 없어요.")) return;
+    const confirmText = reviewReady
+      ? "서평을 제출할까요? 심사가 끝날 때까지 고칠 수 없어요."
+      : `제출할까요? 서평이 ${MIN_REVIEW_LENGTH}자 미만이라 심사 없이 바로 저장돼요. 나중에 수정해서 서평을 ${MIN_REVIEW_LENGTH}자 이상 쓰면 서평 제출을 할 수 있어요.`;
+    if (!window.confirm(confirmText)) return;
 
     setBusy(true);
     let saved: ReadingLog | null = null;
     try {
       saved = await save();
-      await submitReadingLogs([saved.id]);
-      setSavedLog({ ...saved, status: "SUBMITTED" });
-      setMessage("제출했어요. 심사 결과는 알림과 내서재에서 확인할 수 있어요.");
+      // 심사로 갈지 저장으로 끝날지는 서버가 서평 길이로 정합니다.
+      const result = await submitReadingLogs([saved.id]);
+      if (result.submittedIds.includes(saved.id)) {
+        setSavedLog({ ...saved, status: "SUBMITTED" });
+        setMessage("서평을 제출했어요. 심사 결과는 알림과 내서재에서 확인할 수 있어요.");
+      } else {
+        setSavedLog({ ...saved, status: "SAVED" });
+        setMessage(`제출해서 저장했어요. 서평을 ${MIN_REVIEW_LENGTH}자 이상 쓰면 수정해서 서평 제출을 할 수 있어요.`);
+      }
     } catch (error) {
       const reason = error instanceof Error ? error.message : "다시 시도해 주세요.";
       // 저장은 됐지만 제출만 실패한 경우를 구분해서 알려 줍니다.
@@ -293,8 +302,8 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
             <h1>{isEditMode ? "독서기록 수정" : "독서기록 작성"}</h1>
             <p>
               {isEditMode
-                ? "저장한 기록을 고치고, 다시 임시저장하거나 제출해요."
-                : "읽은 쪽과 느낀 점을 남기고, 임시저장하거나 바로 제출해요."}
+                ? "저장한 기록을 고치고, 다시 임시저장하거나 제출해요. 서평을 500자 이상 쓰면 심사를 받아요."
+                : "읽은 쪽과 느낀 점을 남기고, 임시저장하거나 바로 제출해요. 서평을 500자 이상 쓰면 심사를 받아요."}
             </p>
           </div>
           <div className="record-hero-art" aria-hidden="true">
@@ -428,8 +437,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
 
               <div className="record-review-heading">
                 <label htmlFor="review-text">
-                    서평 <b>제출할 때 필요해요</b>
-                    <small>임시저장만 할 때는 비워도 돼요</small>
+                    서평 <small>선택 · 500자 이상이면 서평 제출로 심사를 받아요</small>
                 </label>
                 <button
                   className={`record-voice-badge${isListening ? " is-listening" : ""}`}
@@ -457,7 +465,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
                 <span>
                   {reviewLength < MIN_REVIEW_LENGTH
                     ? `${MIN_REVIEW_LENGTH}자까지 ${MIN_REVIEW_LENGTH - reviewLength}자 남았어요`
-                    : "제출 기준을 채웠어요"}
+                    : "서평 제출로 심사를 받을 수 있어요"}
                 </span>
               </div>
 
@@ -500,7 +508,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
                     {busy ? "저장 중" : "임시저장"}
                   </button>
                   <button className="record-button record-button-primary" type="submit" disabled={locked}>
-                    온라인 제출
+                    {reviewReady ? "서평 제출" : "제출하기"}
                   </button>
                 </div>
               ) : (
@@ -536,7 +544,9 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
             <section className="record-panel record-submit-panel">
               <h2>제출 방법</h2>
               <p>
-                온라인 제출 → 관리자 검수함 → 상태 ‘심사 대기’.
+                서평 500자 이상: 서평 제출 → 관리자 심사 → 승인.
+                <br />
+                서평이 없거나 500자 미만: 제출하기 → 바로 ‘저장’.
               </p>
               <div className="record-status-flow" aria-label="제출 상태">
                 <span>임시</span>
@@ -546,7 +556,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
                 <span className="approved">승인</span>
               </div>
               <p className="record-small-note">
-                보완요청이 오면 코멘트를 확인하고 수정해 다시 제출해요.
+                보완요청이 오면 코멘트를 확인하고 수정해 다시 제출해요. 저장된 기록도 수정해서 서평을 채우면 서평 제출을 할 수 있어요.
               </p>
             </section>
 
@@ -573,7 +583,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
 
             <section className="record-panel record-delete-panel">
               <p>
-                임시저장·보완요청 상태의 기록은 내서재 수첩형에서 수정·삭제할 수 있어요.
+                임시저장·저장·보완요청 상태의 기록은 내서재 수첩형에서 수정·삭제할 수 있어요.
                 심사 중이거나 승인된 기록은 바꿀 수 없어요.
               </p>
               <button

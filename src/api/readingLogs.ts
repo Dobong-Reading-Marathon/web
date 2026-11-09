@@ -82,10 +82,13 @@ export function updateReadingLog(id: number, input: Omit<ReadingLogInput, "enrol
   return send<ReadingLog>(`/api/reading-logs/${id}`, "PATCH", input);
 }
 
-/** 독서기록 제출 (F-0405). 제출한 기록 번호 목록을 돌려줍니다. */
-export async function submitReadingLogs(readingLogIds: number[]): Promise<number[]> {
-  const response = await send<{ submittedIds: number[] }>("/api/reading-logs/submit", "POST", { readingLogIds });
-  return response.submittedIds;
+/**
+ * 독서기록 제출 (F-0405). 서버가 서평 길이로 상태를 정합니다.
+ * - submittedIds: 서평 500자 이상이라 심사 대기(SUBMITTED)로 간 기록
+ * - savedIds: 서평이 없거나 500자 미만이라 심사 없이 저장(SAVED)된 기록
+ */
+export function submitReadingLogs(readingLogIds: number[]): Promise<{ submittedIds: number[]; savedIds: number[] }> {
+  return send("/api/reading-logs/submit", "POST", { readingLogIds });
 }
 
 /** 독서기록 삭제 (F-0406). 임시저장·보완요청 상태일 때만 됩니다. 성공하면 본문 없이 204로 응답합니다. */
