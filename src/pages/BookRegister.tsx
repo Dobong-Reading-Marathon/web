@@ -312,7 +312,9 @@ export default function BookRegister() {
       });
 
       if (navigateToRecord) {
-        navigate("/records/new");
+        navigate("/records/new", {
+          state: { enrollmentBookId: registeredBook.id },
+        });
         return;
       }
 

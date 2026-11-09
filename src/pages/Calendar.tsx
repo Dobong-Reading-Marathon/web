@@ -18,6 +18,7 @@ import {
 function statusPresentation(status: string) {
   switch (status) {
     case "APPROVED": return { label: "승인", chip: "ok" as const, indicator: "approved" };
+    case "SAVED": return { label: "저장", chip: "ok" as const, indicator: "approved" };
     case "SUBMITTED": return { label: "심사 대기", chip: "wait" as const, indicator: "pending" };
     case "REVISION_REQUESTED": return { label: "보완요청", chip: "fix" as const, indicator: "fix-requested" };
     default: return { label: "임시저장", chip: "draft" as const, indicator: "draft" };
@@ -172,7 +173,7 @@ export default function Calendar() {
               <div className="chip-list" style={{ alignItems: "center" }}>
                 <span className="text-small"><b className="status-indicator--draft">●</b> 임시저장</span>
                 <span className="text-small"><b className="status-indicator--pending">●</b> 심사 대기</span>
-                <span className="text-small"><b className="status-indicator--approved">●</b> 승인</span>
+                <span className="text-small"><b className="status-indicator--approved">●</b> 승인·저장</span>
                 <span className="text-small"><b className="status-indicator--fix-requested">●</b> 보완요청</span>
               </div>
               <p className="text-extra-small text-muted">칸의 글씨는 책 제목과 읽은 쪽이에요.</p>
@@ -182,7 +183,7 @@ export default function Calendar() {
               <div className="content-card">
                 <div className="content-card-header"><h2 className="card-title">{selectedLabel}</h2></div>
                 {loading ? <p className="text-muted">기록을 불러오는 중이에요.</p> : selectedDay?.logs.length ? <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>{selectedDay.logs.map(renderLog)}</div> : <p className="text-muted">선택한 날짜에 등록된 독서 기록이 없어요.</p>}
-                {!loading && <div className="action-group"><Link to="/records/new" className="button">이날 기록 추가</Link></div>}
+                {!loading && <div className="action-group"><Link to={`/records/new?date=${selectedKey}`} className="button">이날 기록 추가</Link></div>}
               </div>
               <div className="content-card content-card--mint">
                 <div className="content-card-header"><h2 className="card-title">월별 독서 요약</h2></div>

@@ -8,6 +8,7 @@ import UserLayout from "../components/UserLayout";
 import { getBooks, type LibraryBookStatus } from "../api/books";
 import { getReadingCalendar, getReadingLogDetail, type ReadingLogDetail } from "../api/calendar";
 import { getCurrentEnrollment } from "../api/enrollments";
+import { deleteReadingLog } from "../api/readingLogs";
 
 type ReadingRecord = {
   id: number;
@@ -17,6 +18,7 @@ type ReadingRecord = {
   author: string;
   pages: string;
   status: string;
+  statusCode: string;
   chipKind: ChipKind;
   totalPages: number;
   ownership: string;
@@ -30,6 +32,7 @@ const statusLabels: Record<LibraryBookStatus | string, string> = {
   SUBMITTED: "심사 대기",
   APPROVED: "승인",
   REVISION_REQUESTED: "보완요청",
+  SAVED: "저장",
 };
 
 const statusKinds: Record<string, ChipKind> = {
@@ -37,6 +40,7 @@ const statusKinds: Record<string, ChipKind> = {
   SUBMITTED: "wait",
   APPROVED: "ok",
   REVISION_REQUESTED: "fix",
+  SAVED: "ok", // 승인과 같은 초록색
 };
 
 function formatDate(date: string) {
@@ -47,6 +51,23 @@ function formatDate(date: string) {
 function formatPages(startPage: number, endPage: number) {
   return `${startPage}–${endPage}쪽`;
 }
+
+// 수정은 임시저장·보완요청·저장 상태에서 됩니다 (서버 규칙과 같음).
+function isEditable(statusCode: string) {
+  return statusCode === "DRAFT" || statusCode === "REVISION_REQUESTED" || statusCode === "SAVED";
+}
+
+// 삭제는 제출 전(임시저장) 기록만 됩니다. 한 번 제출한 기록은 지울 수 없습니다 (서버 규칙과 같음).
+function isDeletable(statusCode: string) {
+  return statusCode === "DRAFT";
+}
+
+// 수정 버튼 이름: 보완요청은 고쳐서 다시 제출, 저장은 서평을 채워 제출, 임시저장은 이어서 작성
+const editLabels: Record<string, string> = {
+  REVISION_REQUESTED: "고쳐서 다시 제출",
+  SAVED: "수정 · 서평 제출",
+  DRAFT: "이어서 작성",
+};
 
 function reviewCharCount(review: string | null | undefined) {
   return Array.from(review ?? "").length;
@@ -59,6 +80,7 @@ export default function LibraryNotes() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -93,6 +115,7 @@ export default function LibraryNotes() {
               author: book?.author ?? "",
               pages: formatPages(log.startPage, log.endPage),
               status: statusLabels[log.status] ?? log.status,
+              statusCode: log.status,
               chipKind: statusKinds[log.status] ?? "line",
               totalPages: book?.totalPages ?? 0,
               ownership: book?.libraryOwned ? "소장도서" : "소장 아님",
@@ -142,7 +165,29 @@ export default function LibraryNotes() {
   }, [selectedId]);
 
   const selectedRecord = records.find((record) => record.id === selectedId);
+  const selectedEditable = selectedRecord ? isEditable(selectedRecord.statusCode) : false;
+  const selectedDeletable = selectedRecord ? isDeletable(selectedRecord.statusCode) : false;
   const reviewWords = reviewCharCount(selectedDetail?.review);
+
+  async function handleDelete() {
+    if (!selectedRecord || !selectedDeletable) return;
+    if (!window.confirm(`${selectedRecord.date} ‘${selectedRecord.title}’ 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) return;
+
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteReadingLog(selectedRecord.id);
+      // 목록에서 빼고, 같은 자리의 다음 기록을 고릅니다.
+      const index = records.findIndex((record) => record.id === selectedRecord.id);
+      const nextRecords = records.filter((record) => record.id !== selectedRecord.id);
+      setRecords(nextRecords);
+      setSelectedId(nextRecords[Math.min(index, nextRecords.length - 1)]?.id ?? null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "기록을 삭제하지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <UserLayout active="lib">
@@ -229,14 +274,31 @@ export default function LibraryNotes() {
                 <div className="progress-bar is-orange"><i style={{ width: `${Math.min(reviewWords / 500 * 100, 100)}%` }} /></div>
                 <p className="text-small text-muted">{detailLoading ? "기록을 불러오는 중이에요." : selectedDetail?.review || "아직 쓰지 않았어요."}</p>
               </div>
-              <div className="action-group record-detail-actions">
-                <Link to="/records/new" className="button button--primary">고쳐서 다시 제출</Link>
-                <Link to="/records/new" className="button"><Icon n="pen" s={15} /> 수정</Link>
-                <button type="button" className="button button--danger-outline" disabled={selectedRecord.status === "승인"}>
-                  <Icon n="trash" s={15} /> 삭제
-                </button>
-              </div>
-              <p className="text-extra-small text-muted">승인된 기록은 수정하거나 삭제할 수 없어요.</p>
+              {/* 고칠 수 있는 기록에만 버튼을 보이고, 나머지는 이유만 안내합니다. */}
+              {selectedEditable ? (
+                <div className="action-group record-detail-actions">
+                  <Link to={`/records/${selectedRecord.id}/edit`} className="button button--primary">
+                    <Icon n="pen" s={15} /> {editLabels[selectedRecord.statusCode]}
+                  </Link>
+                  {selectedDeletable && (
+                    <button
+                      type="button"
+                      className="button button--danger-outline"
+                      onClick={handleDelete}
+                      disabled={deleting}
+                    >
+                      <Icon n="trash" s={15} /> {deleting ? "삭제 중" : "삭제"}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p className="text-extra-small text-muted">
+                  {selectedRecord.statusCode === "APPROVED" ? "승인된" : "심사 중인"} 기록은 수정하거나 삭제할 수 없어요.
+                </p>
+              )}
+              {selectedEditable && !selectedDeletable && (
+                <p className="text-extra-small text-muted">제출한 기록은 삭제할 수 없어요.</p>
+              )}
             </aside>
           </div>
         ) : (
@@ -248,6 +310,7 @@ export default function LibraryNotes() {
           <div className="review-status-flow">
             <Chip k="draft">임시저장</Chip><span>→</span><Chip k="wait">심사 대기</Chip><span>→</span>
             <Chip k="ok">승인</Chip><span className="text-muted">또는</span><Chip k="fix">보완요청</Chip>
+            <span className="text-muted">· 서평 500자 미만은 제출하면 바로</span><Chip k="ok">저장</Chip>
           </div>
         </div>
       </section>

@@ -20,6 +20,7 @@ const dateLabel = (value?: string) => value ? new Intl.DateTimeFormat("ko-KR", {
 const statusInfo = (status: string) => ({
   DRAFT: { label: "임시저장", chip: "draft" as const }, SUBMITTED: { label: "심사 대기", chip: "wait" as const },
   APPROVED: { label: "승인", chip: "ok" as const }, REVISION_REQUESTED: { label: "보완요청", chip: "fix" as const },
+  SAVED: { label: "저장", chip: "ok" as const },
 }[status] ?? { label: status || "기록", chip: "line" as const });
 const unwrapList = <T,>(body: unknown, keys: string[]): T[] => {
   if (Array.isArray(body)) return body as T[];
