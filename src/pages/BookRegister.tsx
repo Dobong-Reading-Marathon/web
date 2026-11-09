@@ -1,60 +1,28 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { IScannerControls } from "@zxing/browser";
 import UserLayout from "../components/UserLayout";
+import {
+  BookApiError,
+  lookupBookByIsbn,
+  registerBook,
+  searchBooks,
+  type BookSearchResult,
+} from "../api/books";
+import { getCurrentEnrollment } from "../api/enrollments";
 import "./BookRegister.css";
 
 type Book = {
-  id: number;
+  id: string;
   title: string;
   author: string;
-  publisher: string;
-  pages: number;
-  isbn?: string;
+  publisher: string | null;
+  publishYear: number | null;
+  pages: number | null;
+  isbn: string;
+  coverUrl: string | null;
+  sourceLink: string | null;
 };
-
-const MOCK_BOOKS: Book[] = [
-  {
-    id: 1,
-    title: "모모",
-    author: "미하엘 엔데",
-    publisher: "비룡소",
-    pages: 336,
-    isbn: "9788949190020",
-  },
-  {
-    id: 2,
-    title: "모모 (어린이판)",
-    author: "미하엘 엔데",
-    publisher: "비룡소",
-    pages: 288,
-    isbn: "9788949190037",
-  },
-  {
-    id: 3,
-    title: "모모 이야기",
-    author: "임의 저자",
-    publisher: "예시출판사",
-    pages: 240,
-    isbn: "9788990000001",
-  },
-  {
-    id: 4,
-    title: "소년이 온다",
-    author: "한강",
-    publisher: "창비",
-    pages: 215,
-    isbn: "9788936434120",
-  },
-  {
-    id: 5,
-    title: "작별하지 않는다",
-    author: "한강",
-    publisher: "문학동네",
-    pages: 332,
-    isbn: "9788954682152",
-  },
-];
 
 type BookType = "소장도서" | "소장도서 아님";
 
@@ -85,11 +53,12 @@ export default function BookRegister() {
   const navigate = useNavigate();
 
   const [titleQuery, setTitleQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("모모");
-  const [selectedBook, setSelectedBook] = useState<Book | null>(MOCK_BOOKS[0]);
-  const [title, setTitle] = useState(MOCK_BOOKS[0].title);
-  const [author, setAuthor] = useState(MOCK_BOOKS[0].author);
-  const [pages, setPages] = useState(String(MOCK_BOOKS[0].pages));
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [pages, setPages] = useState("");
   const [bookType, setBookType] = useState<BookType>("소장도서");
   const [isChildrenBook, setIsChildrenBook] = useState(false);
   const [isbn, setIsbn] = useState("");
@@ -99,6 +68,10 @@ export default function BookRegister() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraMessage, setCameraMessage] = useState("");
+  const [enrollmentId, setEnrollmentId] = useState<number | null>(null);
+  const [isLoadingEnrollment, setIsLoadingEnrollment] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerControlsRef = useRef<IScannerControls | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
@@ -115,6 +88,29 @@ export default function BookRegister() {
   useEffect(() => () => {
     scannerControlsRef.current?.stop();
     cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadCurrentEnrollment() {
+      try {
+        const enrollment = await getCurrentEnrollment(controller.signal);
+        setEnrollmentId(enrollment?.id ?? null);
+        if (!enrollment) {
+          setMessage("도서를 등록하려면 먼저 참가 신청을 완료해 주세요.");
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setMessage(error instanceof Error ? error.message : "참가 신청 정보를 불러오지 못했어요.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsLoadingEnrollment(false);
+      }
+    }
+
+    void loadCurrentEnrollment();
+    return () => controller.abort();
   }, []);
 
   function startCamera() {
@@ -205,23 +201,20 @@ export default function BookRegister() {
     };
   }, [cameraOpen]);
 
-  const matchingBooks = useMemo(() => {
-    const query = submittedQuery.trim().toLocaleLowerCase();
-
-    if (!query) return [];
-
-    return MOCK_BOOKS.filter((book) =>
-      `${book.title} ${book.author} ${book.isbn ?? ""}`
-        .toLocaleLowerCase()
-        .includes(query),
-    );
-  }, [submittedQuery]);
+  function toBook(result: BookSearchResult): Book {
+    return {
+      ...result,
+      id: result.isbn || `${result.title}-${result.author}`,
+      pages: result.totalPages,
+    };
+  }
 
   function selectBook(book: Book) {
     setSelectedBook(book);
     setTitle(book.title);
     setAuthor(book.author);
-    setPages(String(book.pages));
+    setPages(book.pages ? String(book.pages) : "");
+    setIsbn(book.isbn);
 
     setBookType("소장도서");
     setIsChildrenBook(false);
@@ -229,34 +222,58 @@ export default function BookRegister() {
     setMessage("");
   }
 
-  function handleTitleSearch(event: FormEvent<HTMLFormElement>) {
+  async function handleTitleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmittedQuery(titleQuery.trim());
-  }
-
-  function handleIsbnSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const normalizedIsbn = isbn.replace(/\D/g, "").trim();
-    const foundBook = MOCK_BOOKS.find(
-      (book) => book.isbn === normalizedIsbn,
-    );
-
-    if (!foundBook) {
-      setMessage("예시 데이터에서 ISBN에 맞는 책을 찾지 못했어요.");
+    const query = titleQuery.trim();
+    if (!query) {
+      setSubmittedQuery("");
+      setSearchResults([]);
+      setMessage("검색어를 입력해 주세요.");
       return;
     }
 
-    selectBook(foundBook);
-    setTitleQuery(foundBook.title);
-    setSubmittedQuery(foundBook.title);
-    setShowIsbnInput(false);
-    setMessage(`${foundBook.title} 정보를 불러왔어요.`);
+    setIsSearching(true);
+    setMessage("");
+    try {
+      const results = await searchBooks(query);
+      setSubmittedQuery(query);
+      setSearchResults(results.map(toBook));
+    } catch (error) {
+      setSubmittedQuery(query);
+      setSearchResults([]);
+      setMessage(error instanceof Error ? error.message : "도서 정보를 찾지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setIsSearching(false);
+    }
   }
 
-  function handleRegister(event: FormEvent<HTMLFormElement>) {
+  async function handleIsbnSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const normalizedIsbn = isbn.replace(/\D/g, "").trim();
+    if (normalizedIsbn.length !== 13) {
+      setMessage("ISBN은 하이픈 없이 13자리 숫자로 입력해 주세요.");
+      return;
+    }
+
+    setIsSearching(true);
+    setMessage("");
+    try {
+      const foundBook = toBook(await lookupBookByIsbn(normalizedIsbn));
+      selectBook(foundBook);
+      setTitleQuery(foundBook.title);
+      setSubmittedQuery(foundBook.title);
+      setSearchResults([foundBook]);
+      setShowIsbnInput(false);
+      setMessage(`${foundBook.title} 정보를 불러왔어요.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "ISBN으로 도서 정보를 찾지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  async function registerCurrentBook(navigateToRecord = false) {
     const pageCount = Number(pages);
 
     if (!title.trim() || !author.trim() || !pageCount || pageCount < 1) {
@@ -264,19 +281,57 @@ export default function BookRegister() {
       return;
     }
 
-    const registeredBook = {
-      title: title.trim(),
-      author: author.trim(),
-      pages: pageCount,
-      bookType,
-      isChildrenBook,
-      isbn: isbn.trim() || selectedBook?.isbn || "",
-    };
+    if (isLoadingEnrollment) {
+      setMessage("참가 신청 정보를 확인하고 있어요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
 
-    // 임시 확인용
-    console.log("등록할 도서:", registeredBook);
-    setMessage(`‘${registeredBook.title}’이(가) 등록됐어요.`);
-    setIsRegistered(true);
+    if (!enrollmentId) {
+      setMessage("도서를 등록하려면 먼저 참가 신청을 완료해 주세요.");
+      return;
+    }
+
+    const normalizedIsbn = (isbn.trim() || selectedBook?.isbn || "").replace(/\D/g, "");
+    if (normalizedIsbn && normalizedIsbn.length !== 13) {
+      setMessage("ISBN은 하이픈 없이 13자리 숫자로 입력해 주세요.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage("");
+    try {
+      const registeredBook = await registerBook({
+        enrollmentId,
+        title: title.trim(),
+        author: author.trim(),
+        totalPages: pageCount,
+        ...(normalizedIsbn ? { isbn: normalizedIsbn } : {}),
+        ...(selectedBook?.publisher ? { publisher: selectedBook.publisher } : {}),
+        children: isChildrenBook,
+        libraryOwned: bookType === "소장도서",
+      });
+
+      if (navigateToRecord) {
+        navigate("/records/new");
+        return;
+      }
+
+      setMessage(`‘${registeredBook.title}’이(가) 내서재에 등록됐어요.`);
+      setIsRegistered(true);
+    } catch (error) {
+      if (error instanceof BookApiError && error.fieldErrors.length > 0) {
+        setMessage(error.fieldErrors.map(({ message: fieldMessage }) => fieldMessage).join(" "));
+      } else {
+        setMessage(error instanceof Error ? error.message : "도서를 등록하지 못했어요. 다시 시도해 주세요.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function handleRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void registerCurrentBook();
   }
 
   function handleCancel() {
@@ -284,24 +339,7 @@ export default function BookRegister() {
   }
 
   function handleRegisterAndWrite() {
-    const pageCount = Number(pages);
-
-    if (!title.trim() || !author.trim() || !pageCount || pageCount < 1) {
-      setMessage("도서명, 저자, 전체 쪽수를 올바르게 입력해 주세요.");
-      return;
-    }
-
-    const registeredBook = {
-      title: title.trim(),
-      author: author.trim(),
-      pages: pageCount,
-      bookType,
-      isChildrenBook,
-    };
-
-    // 임시 확인용
-    console.log("등록 후 기록 작성:", registeredBook);
-    navigate("/records/new");
+    void registerCurrentBook(true);
   }
 
   return (
@@ -421,13 +459,12 @@ export default function BookRegister() {
 
               {submittedQuery && (
                 <p className="register-search-summary">
-                  ‘{submittedQuery}’ 검색 결과 {matchingBooks.length}건 · 예시
-                  도서 정보
+                  ‘{submittedQuery}’ 검색 결과 {searchResults.length}건 · YES24 도서 정보
                 </p>
               )}
 
               <div className="book-results">
-                {matchingBooks.map((book) => {
+                {searchResults.map((book) => {
                   const isSelected = selectedBook?.id === book.id;
 
                   return (
@@ -442,7 +479,7 @@ export default function BookRegister() {
                       <div className="book-info">
                         <h3>{book.title}</h3>
                         <p>
-                          {book.author} · {book.publisher} · {book.pages}쪽
+                          {book.author} · {book.publisher ?? "출판사 정보 없음"} · {book.pages ?? "쪽수 정보 없음"}
                         </p>
                       </div>
 
@@ -457,15 +494,22 @@ export default function BookRegister() {
                           선택
                         </button>
                       )}
+
+                      {book.sourceLink && (
+                        <a href={book.sourceLink} target="_blank" rel="noreferrer" className="book-source-link">
+                          YES24 상세 보기
+                        </a>
+                      )}
                     </article>
                   );
                 })}
 
-                {submittedQuery && matchingBooks.length === 0 && (
+                {submittedQuery && !isSearching && searchResults.length === 0 && (
                   <p className="register-empty">
                     검색 결과가 없어요. 오른쪽에서 직접 입력해 등록할 수 있어요.
                   </p>
                 )}
+                {isSearching && <p className="register-empty">도서 정보를 찾고 있어요.</p>}
               </div>
 
               <p className="register-helper-text">
@@ -588,13 +632,19 @@ export default function BookRegister() {
                 </span>
               </label>
 
+              {!isRegistered && message && (
+                <p className="register-message" role="status">
+                  {message}
+                </p>
+              )}
+
               {isRegistered ? (
                 <div className="register-success">
                   <p className="register-message" role="status">
                     {message}
                   </p>
-                  <Link className="register-button button-dark" to="/">
-                    홈으로 돌아가기
+                  <Link className="register-button button-dark" to="/library">
+                    내서재에서 확인하기
                   </Link>
                 </div>
               ) : (
@@ -607,16 +657,17 @@ export default function BookRegister() {
                       취소
                     </button>
 
-                    <button className="register-button button-outline" type="submit">
-                      등록만 하기
+                    <button className="register-button button-outline" type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? "등록 중…" : "등록만 하기"}
                     </button>
 
                     <button
                       className="register-button button-dark"
                       type="button"
                       onClick={handleRegisterAndWrite}
+                      disabled={isSubmitting}
                     >
-                      등록하고 기록 쓰기
+                      {isSubmitting ? "등록 중…" : "등록하고 기록 쓰기"}
                     </button>
                   </div>
                 )}
