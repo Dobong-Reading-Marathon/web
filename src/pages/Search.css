@@ -187,6 +187,12 @@
   background: var(--search-green-dark);
 }
 
+/* 서버에 API가 없어 아직 쓸 수 없는 검색 범위 */
+.search-page .filter-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .notice {
   display: flex;
   align-items: flex-start;
