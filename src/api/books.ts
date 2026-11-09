@@ -61,3 +61,123 @@ export async function getBooks(options: {
   }
   return [];
 }
+
+export interface BookRegistrationRequest {
+  enrollmentId: number;
+  title: string;
+  author: string;
+  totalPages: number;
+  isbn?: string;
+  publisher?: string;
+  publishYear?: number;
+  children: boolean;
+  libraryOwned: boolean;
+  registrationNo?: string;
+  loanDate?: string;
+  returnDate?: string;
+}
+
+export interface RegisteredBook {
+  id: number;
+  bookId: number;
+  title: string;
+  author: string;
+  publisher: string | null;
+  publishYear: number | null;
+  totalPages: number;
+  isbn: string | null;
+  libraryOwned: boolean;
+  registrationNo: string | null;
+  loanDate: string | null;
+  returnDate: string | null;
+  children: boolean;
+}
+
+export interface BookSearchResult {
+  title: string;
+  author: string;
+  publisher: string | null;
+  publishYear: number | null;
+  totalPages: number | null;
+  isbn: string;
+  coverUrl: string | null;
+  sourceLink: string | null;
+}
+
+interface ApiErrorBody {
+  code?: string;
+  message?: string;
+  fieldErrors?: { field: string; message: string }[];
+}
+
+export class BookApiError extends Error {
+  readonly status: number;
+  readonly code?: string;
+  readonly fieldErrors: { field: string; message: string }[];
+
+  constructor(message: string, status: number, code?: string, fieldErrors: { field: string; message: string }[] = []) {
+    super(message);
+    this.name = "BookApiError";
+    this.status = status;
+    this.code = code;
+    this.fieldErrors = fieldErrors;
+  }
+}
+
+async function readApiError(response: Response): Promise<BookApiError> {
+  let body: ApiErrorBody = {};
+  try {
+    body = await response.json() as ApiErrorBody;
+  } catch {
+    // 오류 응답 본문이 없는 경우 상태 코드로 안내합니다.
+  }
+
+  const fallback = response.status === 401
+    ? "로그인이 필요하거나 로그인 정보가 만료됐어요. 다시 로그인해 주세요."
+    : response.status === 409
+      ? "이미 내서재에 등록한 도서입니다."
+      : response.status >= 500
+        ? "도서 등록 서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요."
+        : `도서를 등록하지 못했습니다. (${response.status})`;
+
+  return new BookApiError(body.message || fallback, response.status, body.code, body.fieldErrors ?? []);
+}
+
+export async function registerBook(payload: BookRegistrationRequest): Promise<RegisteredBook> {
+  let response: Response;
+  try {
+    response = await apiFetch("/api/books", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error("도서 등록 서버에 연결할 수 없어요. 서버 실행 상태와 주소를 확인해 주세요.");
+  }
+
+  if (!response.ok) throw await readApiError(response);
+  return response.json() as Promise<RegisteredBook>;
+}
+
+async function getBookSearchResponse<T>(path: string): Promise<T> {
+  let response: Response;
+  try {
+    response = await apiFetch(path);
+  } catch {
+    throw new Error("도서 검색 서버에 연결할 수 없어요. 서버 실행 상태와 주소를 확인해 주세요.");
+  }
+
+  if (!response.ok) throw await readApiError(response);
+  return response.json() as Promise<T>;
+}
+
+export function lookupBookByIsbn(isbn: string): Promise<BookSearchResult> {
+  return getBookSearchResponse<BookSearchResult>(`/api/books/lookup?isbn=${encodeURIComponent(isbn)}`);
+}
+
+export async function searchBooks(query: string): Promise<BookSearchResult[]> {
+  const response = await getBookSearchResponse<{ items: BookSearchResult[] }>(
+    `/api/books/search?query=${encodeURIComponent(query)}`,
+  );
+  return response.items;
+}
