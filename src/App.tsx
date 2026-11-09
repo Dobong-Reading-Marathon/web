@@ -19,6 +19,8 @@ import CourseChange from "./pages/CourseChange.tsx";
 import HomeEntry from "./pages/HomeEntry.tsx";
 import AdminOverview from "./pages/AdminOverview.tsx";
 import AdminParticipants from "./pages/AdminParticipants.tsx";
+import AdminReviews from "./pages/AdminReviews.tsx";
+import AdminRounds from "./pages/AdminRounds.tsx";
 
 
 function ScrollToTop() {
@@ -52,6 +54,8 @@ export default function App() {
         <Route path="/search" element={<Search />} />
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/participants" element={<AdminParticipants />} />
+        <Route path="/admin/reviews" element={<AdminReviews />} />
+        <Route path="/admin/rounds" element={<AdminRounds />} />
       </Routes>
     </div>
   );
