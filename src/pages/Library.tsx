@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Chip from "../components/Chip";
 import Cover from "../components/Cover";
 import Icon from "../components/Icon";
@@ -37,6 +37,8 @@ const statusKinds: Record<LibraryBookStatus, string> = {
 
 //피그마 2,5
 export default function Library() {
+  const location = useLocation();
+  const navigationNotice = (location.state as { notice?: string } | null)?.notice;
   const [statusFilter, setStatusFilter] = useState("전체");
   const [searchQuery, setSearchQuery] = useState("");
   const [books, setBooks] = useState<LibraryBook[]>([]);
@@ -68,6 +70,7 @@ export default function Library() {
   return (
     <UserLayout active="lib">
       <section className="content-section is-top">
+        {navigationNotice && <p className="notice notice--success" role="status">{navigationNotice}</p>}
         <div className="page-banner">
           <Tower w={380} />
           <div className="page-heading-row">

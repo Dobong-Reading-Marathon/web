@@ -54,6 +54,34 @@ export interface ReadingLogDetail {
   librarianComment: string | null;
 }
 
+export interface CreateReadingLogRequest {
+  enrollmentBookId: number;
+  startPage: number;
+  endPage: number;
+  readDate: string;
+  quote: string;
+  review: string;
+}
+
+export async function createReadingLog(payload: CreateReadingLogRequest): Promise<ReadingLogDetail> {
+  const response = await apiFetch("/api/reading-logs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(`독서기록을 저장하지 못했습니다. (${response.status})`);
+  return response.json() as Promise<ReadingLogDetail>;
+}
+
+export async function submitReadingLogs(readingLogIds: number[]): Promise<void> {
+  const response = await apiFetch("/api/reading-logs/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ readingLogIds }),
+  });
+  if (!response.ok) throw new Error(`독서기록을 제출하지 못했습니다. (${response.status})`);
+}
+
 async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
   const response = await apiFetch(path, {
     signal,
