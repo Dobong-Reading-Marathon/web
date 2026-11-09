@@ -56,9 +56,10 @@ function UserHeader({ active }: { active: UserNav }) {
           <Icon n="pen" s={16} />
           기록 쓰기
         </Link>
-        <Link className="icon-button" to="/notifications" aria-label="알림 2건">
+        <Link className="icon-button" to="/notifications" aria-label="알림">
           <Icon n="bell" s={20} />
-          <b>2</b>
+          {/* TODO: 알림 서버 구현 후 안 읽은 알림 수(API)로 연결하고 주석 해제 (2순위) */}
+          {/* <b>2</b> */}
         </Link>
         <span className="profile-name">
           <span className="avatar">{userName.slice(0, 1)}</span>{userName}님
