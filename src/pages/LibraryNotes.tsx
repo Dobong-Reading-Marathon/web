@@ -17,6 +17,7 @@ type ReadingRecord = {
   author: string;
   pages: string;
   status: string;
+  statusCode: string;
   chipKind: ChipKind;
   totalPages: number;
   ownership: string;
@@ -46,6 +47,11 @@ function formatDate(date: string) {
 
 function formatPages(startPage: number, endPage: number) {
   return `${startPage}–${endPage}쪽`;
+}
+
+// 임시저장·보완요청 상태만 수정·삭제할 수 있습니다 (서버 규칙과 같음).
+function isEditable(statusCode: string) {
+  return statusCode === "DRAFT" || statusCode === "REVISION_REQUESTED";
 }
 
 function reviewCharCount(review: string | null | undefined) {
@@ -93,6 +99,7 @@ export default function LibraryNotes() {
               author: book?.author ?? "",
               pages: formatPages(log.startPage, log.endPage),
               status: statusLabels[log.status] ?? log.status,
+              statusCode: log.status,
               chipKind: statusKinds[log.status] ?? "line",
               totalPages: book?.totalPages ?? 0,
               ownership: book?.libraryOwned ? "소장도서" : "소장 아님",
@@ -142,6 +149,7 @@ export default function LibraryNotes() {
   }, [selectedId]);
 
   const selectedRecord = records.find((record) => record.id === selectedId);
+  const selectedEditable = selectedRecord ? isEditable(selectedRecord.statusCode) : false;
   const reviewWords = reviewCharCount(selectedDetail?.review);
 
   return (
@@ -230,13 +238,16 @@ export default function LibraryNotes() {
                 <p className="text-small text-muted">{detailLoading ? "기록을 불러오는 중이에요." : selectedDetail?.review || "아직 쓰지 않았어요."}</p>
               </div>
               <div className="action-group record-detail-actions">
-                <Link to="/records/new" className="button button--primary">고쳐서 다시 제출</Link>
-                <Link to="/records/new" className="button"><Icon n="pen" s={15} /> 수정</Link>
+                {selectedEditable && (
+                  <Link to={`/records/${selectedRecord.id}/edit`} className="button button--primary">
+                    <Icon n="pen" s={15} /> {selectedRecord.statusCode === "REVISION_REQUESTED" ? "고쳐서 다시 제출" : "이어서 작성"}
+                  </Link>
+                )}
                 <button type="button" className="button button--danger-outline" disabled={selectedRecord.status === "승인"}>
                   <Icon n="trash" s={15} /> 삭제
                 </button>
               </div>
-              <p className="text-extra-small text-muted">승인된 기록은 수정하거나 삭제할 수 없어요.</p>
+              <p className="text-extra-small text-muted">심사 중이거나 승인된 기록은 수정하거나 삭제할 수 없어요.</p>
             </aside>
           </div>
         ) : (

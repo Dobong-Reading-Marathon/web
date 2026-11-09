@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import UserLayout from "../components/UserLayout";
 import { getBooks, type LibraryBook } from "../api/books";
+import { getReadingLogDetail } from "../api/calendar";
 import {
   createReadingLog,
   submitReadingLogs,
@@ -54,10 +55,17 @@ function isEditable(log: ReadingLog | null): boolean {
   return !log || log.status === "DRAFT" || log.status === "REVISION_REQUESTED";
 }
 
-export default function ReadingRecord() {
+/**
+ * 독서기록 작성(/records/new)과 수정(/records/:id/edit) 화면.
+ * editId가 있으면 그 기록을 불러와서 고칩니다.
+ */
+export default function ReadingRecord({ editId }: { editId?: number }) {
+  const isEditMode = editId !== undefined;
+  const invalidEditId = isEditMode && (!Number.isInteger(editId) || editId < 1);
   const [searchParams] = useSearchParams();
   // 도서 등록 직후(?book=)나 독서달력(?date=)에서 오면 그 값만 미리 채웁니다.
   const [draft, setDraft] = useState<Draft>(() => {
+    if (isEditMode) return EMPTY_DRAFT;
     const book = searchParams.get("book") ?? "";
     const date = searchParams.get("date") ?? "";
     return {
@@ -72,6 +80,11 @@ export default function ReadingRecord() {
   const [savedLog, setSavedLog] = useState<ReadingLog | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  // 수정 화면: 불러온 값(되돌리기용), 불러오는 중, 불러오기 실패, 사서 코멘트
+  const [loadedDraft, setLoadedDraft] = useState<Draft | null>(null);
+  const [logLoading, setLogLoading] = useState(isEditMode && !invalidEditId);
+  const [logError, setLogError] = useState(invalidEditId ? "기록을 찾을 수 없어요. 내서재에서 다시 골라 주세요." : "");
+  const [librarianComment, setLibrarianComment] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -87,9 +100,40 @@ export default function ReadingRecord() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    if (editId === undefined || invalidEditId) return;
+    const controller = new AbortController();
+    getReadingLogDetail(editId, controller.signal)
+      .then((log) => {
+        const loaded: Draft = {
+          enrollmentBookId: String(log.enrollmentBookId),
+          startPage: String(log.startPage),
+          endPage: String(log.endPage),
+          readDate: log.readDate,
+          quote: log.quote ?? "",
+          review: log.review ?? "",
+        };
+        setDraft(loaded);
+        setLoadedDraft(loaded);
+        setSavedLog(log);
+        setLibrarianComment(log.librarianComment);
+        if (!isEditable(log)) {
+          setMessage("심사 중이거나 승인된 기록은 고칠 수 없어요.");
+        }
+      })
+      .catch(() => {
+        // 없는 기록과 남의 기록은 서버가 똑같이 404로 응답합니다.
+        if (!controller.signal.aborted) setLogError("기록을 불러오지 못했어요. 내서재에서 다시 골라 주세요.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLogLoading(false);
+      });
+    return () => controller.abort();
+  }, [editId, invalidEditId]);
+
   const selectedBook = books.find((book) => String(book.enrollmentBookId) === draft.enrollmentBookId);
   const editable = isEditable(savedLog);
-  const locked = busy || !editable;
+  const locked = busy || !editable || logLoading || logError !== "";
 
   const appendSpeechToReview = useCallback((text: string) => {
     const dictatedText = text
@@ -201,6 +245,12 @@ export default function ReadingRecord() {
   }
 
   function handleClear() {
+    // 수정 화면에서는 입력을 비우지 않고 불러온 값으로 되돌립니다.
+    if (isEditMode) {
+      if (loadedDraft) setDraft(loadedDraft);
+      setMessage("고친 내용을 되돌렸어요.");
+      return;
+    }
     const hadSaved = savedLog !== null;
     setDraft(EMPTY_DRAFT);
     setSavedLog(null);
@@ -235,13 +285,17 @@ export default function ReadingRecord() {
         <nav className="record-breadcrumb" aria-label="현재 위치">
           <Link to="/library">내서재</Link>
           <span aria-hidden="true">›</span>
-          <span>독서기록 작성</span>
+          <span>{isEditMode ? "독서기록 수정" : "독서기록 작성"}</span>
         </nav>
 
         <section className="record-hero">
           <div className="record-hero-copy">
-            <h1>독서기록 작성</h1>
-            <p>읽은 쪽과 느낀 점을 남기고, 임시저장하거나 바로 제출해요.</p>
+            <h1>{isEditMode ? "독서기록 수정" : "독서기록 작성"}</h1>
+            <p>
+              {isEditMode
+                ? "저장한 기록을 고치고, 다시 임시저장하거나 제출해요."
+                : "읽은 쪽과 느낀 점을 남기고, 임시저장하거나 바로 제출해요."}
+            </p>
           </div>
           <div className="record-hero-art" aria-hidden="true">
             <span className="record-art-building record-art-back" />
@@ -279,6 +333,13 @@ export default function ReadingRecord() {
                 </select>
               </label>
 
+              {logLoading && <p className="record-message" role="status">기록을 불러오는 중이에요.</p>}
+              {logError && <p className="record-message" role="alert">{logError}</p>}
+              {librarianComment && (
+                <p className="record-message" role="note">
+                  <strong>사서 코멘트</strong> · {librarianComment}
+                </p>
+              )}
               {booksError && <p className="record-message" role="alert">{booksError}</p>}
               {!booksLoading && !booksError && books.length === 0 && (
                 <p className="record-message" role="status">
@@ -286,7 +347,11 @@ export default function ReadingRecord() {
                 </p>
               )}
               {savedLog && editable && (
-                <p className="record-small-note">저장한 기록은 도서를 바꿀 수 없어요. 다른 책은 입력을 지우고 새로 작성해요.</p>
+                <p className="record-small-note">
+                  {isEditMode
+                    ? "저장한 기록은 도서를 바꿀 수 없어요."
+                    : "저장한 기록은 도서를 바꿀 수 없어요. 다른 책은 입력을 지우고 새로 작성해요."}
+                </p>
               )}
 
               <Link className="record-add-book" to="/register">
@@ -424,17 +489,17 @@ export default function ReadingRecord() {
                 </p>
               )}
 
-              {editable ? (
+              {logError ? null : editable ? (
                 <div className="record-form-actions">
                   <button
                     className="record-button record-button-outline"
                     type="button"
                     onClick={handleSaveDraft}
-                    disabled={busy}
+                    disabled={locked}
                   >
                     {busy ? "저장 중" : "임시저장"}
                   </button>
-                  <button className="record-button record-button-primary" type="submit" disabled={busy}>
+                  <button className="record-button record-button-primary" type="submit" disabled={locked}>
                     온라인 제출
                   </button>
                 </div>
@@ -443,9 +508,15 @@ export default function ReadingRecord() {
                   <Link className="record-button record-button-outline" to="/library/notes">
                     내서재에서 보기
                   </Link>
-                  <button className="record-button record-button-primary" type="button" onClick={handleClear}>
-                    새 기록 쓰기
-                  </button>
+                  {isEditMode ? (
+                    <Link className="record-button record-button-primary" to="/records/new">
+                      새 기록 쓰기
+                    </Link>
+                  ) : (
+                    <button className="record-button record-button-primary" type="button" onClick={handleClear}>
+                      새 기록 쓰기
+                    </button>
+                  )}
                 </div>
               )}
             </form>
@@ -509,9 +580,9 @@ export default function ReadingRecord() {
                 className="record-delete-button"
                 type="button"
                 onClick={handleClear}
-                disabled={busy}
+                disabled={locked}
               >
-                기록 입력 지우기
+                {isEditMode ? "고친 내용 되돌리기" : "기록 입력 지우기"}
               </button>
             </section>
           </aside>
