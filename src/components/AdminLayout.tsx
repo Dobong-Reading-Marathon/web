@@ -40,7 +40,7 @@ export default function AdminLayout({ active, children }: { active: AdminSection
   async function handleLogout() {
     if (!window.confirm("로그아웃할까요?")) return;
     try { await adminLogout(); } catch { /* The local admin session is cleared even if the server is unreachable. */ }
-    navigate("/", { replace: true });
+    navigate("/admin/login", { replace: true });
   }
 
   if (!authChecked) return <main className="admin-auth-status" role="status">관리자 정보를 확인하고 있어요…</main>;
