@@ -1228,14 +1228,14 @@ body {
 .page-banner {
   background: #2f7d5f;
   border-radius: 32px;
-  padding: 72px 64px;
+  padding: 48px 56px;
   display: flex;
   flex-direction: column;
   gap: 20px;
   color: #fff;
   position: relative;
   overflow: hidden;
-  min-height: 300px;
+  min-height: 220px;
   justify-content: flex-end;
 }
 .page-banner > * {
@@ -1257,7 +1257,8 @@ body {
   position: absolute;
   right: 30px;
   bottom: 0;
-  width: 380px;
+  /* Tower가 폭을 인라인으로 넣으므로 max-width로 줄입니다. */
+  max-width: 300px;
   height: auto;
   pointer-events: none;
 }
@@ -1771,9 +1772,9 @@ body {
   }
 
   .page-banner {
-    padding: 36px 24px;
+    padding: 28px 24px;
     border-radius: 28px;
-    min-height: 220px;
+    min-height: 160px;
   }
   .page-banner .page-title {
     font-size: 34px;
@@ -1782,7 +1783,7 @@ body {
     font-size: 15px;
   }
   .page-banner .decorative-illustration {
-    width: 170px;
+    max-width: 140px;
     right: -10px;
     opacity: 0.25;
   }
@@ -1876,6 +1877,9 @@ body {
   .page-banner .decorative-illustration {
     opacity: 0.3;
     width: 320px;
+  }
+  .page-banner .decorative-illustration {
+    max-width: 260px;
   }
   .hero-banner .page-title {
     font-size: 48px;
