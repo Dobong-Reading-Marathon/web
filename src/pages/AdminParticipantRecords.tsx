@@ -61,7 +61,7 @@ export default function AdminParticipantRecords() {
           {book.logs.length === 0 ? <p className="admin-records-empty">이 도서의 독서기록이 없습니다.</p> : <div className="admin-records-log-list">{book.logs.map((log) => { const badge = logStatus[log.status] ?? { label: log.status, chip: "line" as ChipKind }; return <section className="admin-records-log" key={log.readingLogId}>
             <header><div><b>{localDate(log.readDate)}</b><span>{number(log.startPage)}–{number(log.endPage)}쪽 · {number(log.endPage - log.startPage + 1)}쪽 읽음</span></div><Chip k={badge.chip}>{badge.label}</Chip></header>
             <div className="admin-records-log-meta"><span>제출 {dateTime(log.submittedAt)}</span>{log.reviewedAt && <span>심사 {dateTime(log.reviewedAt)}</span>}<span>{log.counted ? "완주 집계 반영" : "완주 집계 미반영"}</span></div>
-            <div className="admin-records-log-body"><h3>마음에 드는 글귀</h3><p>{log.quote?.trim() || "등록된 글귀가 없습니다."}</p><div className="admin-records-review-heading"><h3>서평</h3><b>{number(log.reviewLength)}자</b></div><p className="admin-records-review">{log.review?.trim() || "등록된 서평이 없습니다."}</p></div>
+            <div className="admin-records-log-body">{log.quote?.trim() && <><h3>마음에 드는 글귀</h3><p>{log.quote}</p></>}<div className="admin-records-review-heading"><h3>서평</h3><b>{number(log.reviewLength)}자</b></div><p className="admin-records-review">{log.review?.trim() || "등록된 서평이 없습니다."}</p></div>
             {log.librarianComment && <p className="admin-records-comment"><b>사서 코멘트</b>{log.librarianComment}</p>}
           </section>; })}</div>}
         </article>)}

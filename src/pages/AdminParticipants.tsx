@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { approveAdminCompletion, exportAdminParticipants, getAdminCurrentRound, getAdminEnrollmentDetail, getAdminParticipants, type AdminCompletionStatus, type AdminEnrollmentDetail, type AdminParticipant, type AdminParticipantPage } from "../api/admin";
+import { approveAdminCompletion, exportAdminParticipants, getAdminCurrentRound, getAdminEnrollmentDetail, getAdminParticipants, type AdminCompletionStatus, type AdminEnrollmentDetail, type AdminParticipantPage } from "../api/admin";
 import type { CurrentRound } from "../api/currentRound";
 import Chip, { type ChipKind } from "../components/Chip";
 import Icon from "../components/Icon";
-import Tower from "../components/Tower";
 import AdminLayout from "../components/AdminLayout";
 import "./AdminParticipants.css";
 
@@ -28,17 +27,12 @@ const logInfo = (status: string): { label: string; chip: ChipKind } => {
   }
 };
 
-function maskedPhone(phone: string) {
+// 연락처는 가리지 않고 010-0000-0000 형태로 보여 준다
+function formatPhone(phone: string) {
   const digits = phone.replace(/\D/g, "");
-  if (digits.length < 7) return phone;
-  return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`;
-}
-
-function exportCsv(participants: AdminParticipant[], year: number) {
-  const rows = [["이름", "연락처", "코스", "도서 수", "서평 수", "진행률", "완주 상태"], ...participants.map((participant) => [participant.name, participant.phone, participant.course.name, String(participant.books.current), String(participant.reviews.current), `${participant.pages.percent}%`, statusInfo(participant.status).label])];
-  const csv = `\uFEFF${rows.map((row) => row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(",")).join("\r\n")}`;
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  const anchor = document.createElement("a"); anchor.href = url; anchor.download = `${year}-reading-marathon-participants.csv`; anchor.click(); URL.revokeObjectURL(url);
+  if (digits.length === 11) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return phone;
 }
 
 export default function AdminParticipants() {
@@ -64,7 +58,6 @@ export default function AdminParticipants() {
   const [offlinePhone, setOfflinePhone] = useState("");
   const [offlineCourse, setOfflineCourse] = useState("");
   const [offlineMemberNo, setOfflineMemberNo] = useState("");
-  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -115,18 +108,9 @@ export default function AdminParticipants() {
   function handlePasswordReset() {
     setActionMessage("비밀번호 초기화 API 명세가 없어 실제 초기화는 진행하지 않았습니다.");
   }
-  async function handleCsvExport() {
-    if (!round) return;
-    setExportMenuOpen(false); setActionMessage("");
-    try {
-      const first = await getAdminParticipants({ roundId: round.id, page: 0, size: 100, keyword: query, courseId: courseId ? Number(courseId) : undefined, status });
-      const remaining = first.totalPages > 1 ? await Promise.all(Array.from({ length: first.totalPages - 1 }, (_, index) => getAdminParticipants({ roundId: round.id, page: index + 1, size: 100, keyword: query, courseId: courseId ? Number(courseId) : undefined, status }))) : [];
-      exportCsv([...first.content, ...remaining.flatMap((result) => result.content)], round.year);
-    } catch (cause) { setActionMessage(cause instanceof Error ? cause.message : "CSV 명단을 다운로드하지 못했습니다."); }
-  }
   async function handleXlsxExport() {
     if (!round) return;
-    setExportMenuOpen(false); setActionMessage("");
+    setActionMessage("");
     try {
       const blob = await exportAdminParticipants({ roundId: round.id, keyword: query, courseId: courseId ? Number(courseId) : undefined, status });
       const url = URL.createObjectURL(blob);
@@ -163,12 +147,12 @@ export default function AdminParticipants() {
   }
 
   return <AdminLayout active="participants"><div className="admin-participants-page">
-    <section className="admin-participants-hero"><Tower w={380} /><div><h1>참가자 관리</h1><p>{round ? `${round.year} 회차 참가자 ${number(pageData?.totalElements ?? 0)}명` : "참가자 목록을 불러오고 있어요."}</p><div className="admin-participants-hero-actions"><div className="admin-export-menu"><button type="button" className="admin-participant-button white" disabled={!pageData?.content.length} aria-expanded={exportMenuOpen} onClick={() => setExportMenuOpen((open) => !open)}><Icon n="download" s={16} /> 명단 다운로드 (CSV · XLSX)</button>{exportMenuOpen && <div className="admin-export-options"><button type="button" onClick={() => void handleCsvExport()}>CSV 다운로드</button><button type="button" onClick={() => void handleXlsxExport()}>Excel 파일 다운로드</button></div>}</div><a href="#offline-register" className="admin-participant-button dark"><Icon n="plus" s={16} /> 오프라인 접수자 등록</a></div></div></section>
+    <section className="admin-participants-hero"><div><h1>참가자 관리</h1><p>{round ? `${round.year} 회차 참가자 ${number(pageData?.totalElements ?? 0)}명` : "참가자 목록을 불러오고 있어요."}</p></div><div className="admin-participants-hero-actions"><button type="button" className="admin-participant-button green" disabled={!pageData?.content.length} onClick={() => void handleXlsxExport()}><Icon n="download" s={16} /> 명단 다운로드 (XLSX)</button><a href="#offline-register" className="admin-participant-button dark"><Icon n="plus" s={16} /> 오프라인 접수자 등록</a></div></section>
     {(roundError || participantsError) && <p className="admin-data-error" role="alert">{roundError || participantsError}</p>}
     <section className="admin-participant-list-panel">
       <div className="admin-participant-filter-row"><form className="admin-participant-search" onSubmit={handleSearch}><input value={keyword} maxLength={50} onChange={(event) => setKeyword(event.target.value)} placeholder="이름 또는 연락처 검색" aria-label="이름 또는 연락처 검색" /><button type="submit" aria-label="검색"><Icon n="search" s={18} /></button></form><label className="admin-select-wrap"><span className="sr-only">코스 필터</span><select value={courseId} onChange={(event) => { setCourseId(event.target.value); setPage(0); }}><option value="">코스 전체</option>{round?.courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label><label className="admin-select-wrap"><span className="sr-only">상태 필터</span><select value={status} onChange={(event) => { setStatus(event.target.value as AdminCompletionStatus | ""); setPage(0); }}><option value="">상태 전체</option><option value="IN_PROGRESS">진행 중</option><option value="PENDING_APPROVAL">완주 승인 대기</option><option value="COMPLETED">완주 승인</option></select></label></div>
       <div className="admin-participant-table-wrap"><table className="admin-participant-table"><thead><tr><th>이름</th><th>연락처</th><th>코스</th><th>권수</th><th className="admin-desktop-only">서평</th><th className="admin-desktop-only">진행률</th><th className="admin-desktop-only">완주 상태</th><th className="admin-desktop-only">작업</th></tr></thead><tbody>
-        {pageData?.content.map((participant) => { const badge = statusInfo(participant.status); const selected = participant.enrollmentId === selectedId; return <tr key={participant.enrollmentId} className={selected ? "is-selected" : ""} onClick={() => { setSelectedId(participant.enrollmentId); setActionMessage(""); }}><th><button type="button" className="admin-row-select" onClick={() => setSelectedId(participant.enrollmentId)}>{participant.name}</button></th><td data-label="연락처">{maskedPhone(participant.phone)}</td><td data-label="코스">{participant.course.name.replace("(개인)", "")}</td><td data-label="권수">{number(participant.books.current)}</td><td className="admin-desktop-only">{number(participant.reviews.current)}</td><td className="admin-desktop-only"><div className="admin-progress-cell"><span><i style={{ width: `${participant.pages.percent}%` }} /></span><b>{participant.pages.percent}%</b></div></td><td className="admin-desktop-only"><Chip k={badge.chip}>{badge.label}</Chip></td><td className="admin-desktop-only"><button type="button" className="admin-table-action" onClick={(event) => { event.stopPropagation(); setSelectedId(participant.enrollmentId); setActionMessage(""); if (participant.status === "PENDING_APPROVAL") void handleCompletion(participant.enrollmentId); else navigate(`/admin/participants/${participant.enrollmentId}/records`); }}> {participant.status === "PENDING_APPROVAL" ? "완주 승인" : "기록 보기"}</button></td></tr>; })}
+        {pageData?.content.map((participant) => { const badge = statusInfo(participant.status); const selected = participant.enrollmentId === selectedId; return <tr key={participant.enrollmentId} className={selected ? "is-selected" : ""} onClick={() => { setSelectedId(participant.enrollmentId); setActionMessage(""); }}><th><button type="button" className="admin-row-select" onClick={() => setSelectedId(participant.enrollmentId)}>{participant.name}</button></th><td data-label="연락처">{formatPhone(participant.phone)}</td><td data-label="코스">{participant.course.name.replace("(개인)", "")}</td><td data-label="권수">{number(participant.books.current)}</td><td className="admin-desktop-only">{number(participant.reviews.current)}</td><td className="admin-desktop-only"><div className="admin-progress-cell"><span><i style={{ width: `${participant.pages.percent}%` }} /></span><b>{participant.pages.percent}%</b></div></td><td className="admin-desktop-only"><Chip k={badge.chip}>{badge.label}</Chip></td><td className="admin-desktop-only"><button type="button" className="admin-table-action" onClick={(event) => { event.stopPropagation(); setSelectedId(participant.enrollmentId); setActionMessage(""); if (participant.status === "PENDING_APPROVAL") void handleCompletion(participant.enrollmentId); else navigate(`/admin/participants/${participant.enrollmentId}/records`); }}> {participant.status === "PENDING_APPROVAL" ? "완주 승인" : "기록 보기"}</button></td></tr>; })}
         {!loading && pageData?.content.length === 0 && <tr><td colSpan={8} className="admin-empty-row">조건에 맞는 참가자가 없습니다.</td></tr>}
         {loading && <tr><td colSpan={8} className="admin-empty-row">참가자 목록을 불러오는 중이에요…</td></tr>}
       </tbody></table></div>
