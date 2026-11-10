@@ -8,13 +8,13 @@ export default function Certificate() {
   return (
     <UserLayout active="">
       <section className="content-section is-top">
-        <div className="breadcrumb">
-          <Link to="/">홈</Link>
-          <Icon n="chr" s={14} sw={1.8} />
-          완주 인증
-        </div>
         <div className="page-banner">
           <Tower w={380} />
+          <div className="breadcrumb">
+            <Link to="/">홈</Link>
+            <Icon n="chr" s={14} sw={1.8} />
+            완주 인증
+          </div>
           <div className="page-heading-row">
             <div>
               <h1 className="page-title">완주 인증서 · 상장</h1>

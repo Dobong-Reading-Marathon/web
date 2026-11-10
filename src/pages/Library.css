@@ -1,5 +1,5 @@
-/* 내서재: 카드형, 수첩형, 책별로 모아보기 공통 */
-.library-banner-tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px}
+/* 내 서재: 카드형, 수첩형, 책별로 모아보기 공통 */
+.library-banner-tools{grid-column:1/-1;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px}
 .library-view-switcher{flex-wrap:wrap}
 .library-empty{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

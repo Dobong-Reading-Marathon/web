@@ -10,7 +10,7 @@ export type UserNav = "home" | "lib" | "cal" | "search" | "rules" | "";
 
 const NAV: { key: UserNav; label: string; to: string; icon: IconName }[] = [
   { key: "home", label: "홈", to: "/", icon: "home" },
-  { key: "lib", label: "내서재", to: "/library", icon: "book" },
+  { key: "lib", label: "내 서재", to: "/library", icon: "book" },
   { key: "cal", label: "독서달력", to: "/calendar", icon: "cal" },
   { key: "search", label: "검색", to: "/search", icon: "search" },
 ];
@@ -111,7 +111,7 @@ export function TabBar({ active }: { active: UserNav }) {
   return (
     <nav className="mobile-tab-bar" aria-label="하단 메뉴">
       {tab("home", "홈", "/", "home")}
-      {tab("lib", "내서재", "/library", "book")}
+      {tab("lib", "내 서재", "/library", "book")}
       <Link className="quick-write-button" to="/records/new" aria-label="기록 쓰기">
         <Icon n="pen" s={24} />
       </Link>

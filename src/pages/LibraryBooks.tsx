@@ -155,10 +155,10 @@ export default function LibraryBooks() {
           <input
             className="text-input"
             type="search"
-            placeholder="내서재에서 도서·기록 검색"
+            placeholder="내 서재에서 도서·기록 검색"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            aria-label="내서재 도서 검색"
+            aria-label="내 서재 도서 검색"
           />
           <div className="chip-list" aria-label="도서 상태 필터">
             {filters.map((filter) => (

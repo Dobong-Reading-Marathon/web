@@ -319,7 +319,7 @@ export default function BookRegister() {
         return;
       }
 
-      setMessage(`‘${registeredBook.title}’이(가) 내서재에 등록됐어요.`);
+      setMessage(`‘${registeredBook.title}’이(가) 내 서재에 등록됐어요.`);
       setIsRegistered(true);
     } catch (error) {
       if (error instanceof BookApiError && error.fieldErrors.length > 0) {
@@ -349,7 +349,7 @@ export default function BookRegister() {
     <UserLayout active="lib">
       <main className="register-page">
         <nav className="register-breadcrumb" aria-label="현재 위치">
-          <Link to="/library">내서재</Link>
+          <Link to="/library">내 서재</Link>
           <span aria-hidden="true">›</span>
           <span>도서 등록</span>
         </nav>
@@ -653,7 +653,7 @@ export default function BookRegister() {
                     {message}
                   </p>
                   <Link className="register-button button-dark" to="/library">
-                    내서재에서 확인하기
+                    내 서재에서 확인하기
                   </Link>
                 </div>
               ) : (

@@ -212,7 +212,7 @@ export default function Search() {
         <section className="search-hero">
           <div>
             <h1>통합 검색</h1>
-            <p>내서재에 등록한 도서를 도서명과 저자로 찾아요. 서평·글귀 검색은 준비 중이에요.</p>
+            <p>내 서재에 등록한 도서를 도서명과 저자로 찾아요.</p>
           </div>
           <div className="search-hero-art" aria-hidden="true">
             <span className="search-book-back" />
@@ -432,10 +432,10 @@ export default function Search() {
             </section>
 
             <section className="side-card bookshelf-card">
-              <h2>내서재만 훑어보고 싶다면</h2>
-              <p>상태 필터와 카드·수첩형 보기는 내서재에서 쓸 수 있어요.</p>
+              <h2>내 서재만 훑어보고 싶다면</h2>
+              <p>상태 필터와 카드·수첩형 보기는 내 서재에서 쓸 수 있어요.</p>
               <Link className="outline-button" to="/library">
-                내서재로 가기
+                내 서재로 가기
               </Link>
             </section>
           </aside>

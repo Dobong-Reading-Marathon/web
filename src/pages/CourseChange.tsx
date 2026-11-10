@@ -37,13 +37,13 @@ export default function CourseChange() {
   return (
     <UserLayout active="">
       <section className="content-section is-top">
-        <div className="breadcrumb">
-          <Link to="/rules">대회 요강</Link>
-          <Icon n="chr" s={14} sw={1.8} />
-          코스 변경
-        </div>
         <div className="page-banner">
           <Tower w={380} />
+          <div className="breadcrumb">
+            <Link to="/rules">대회 요강</Link>
+            <Icon n="chr" s={14} sw={1.8} />
+            코스 변경
+          </div>
           <div className="page-heading-row">
             <div>
               <h1 className="page-title">코스 변경</h1>

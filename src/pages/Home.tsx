@@ -124,7 +124,7 @@ export default function Home() {
   <div className="home-section-intro">
     <h2>내 서재</h2>
     <p>등록한 도서와 독서기록을 상태별로 모아 볼 수 있어요.</p>
-    <Link to="/library" className="home-button dark">내서재 전체 보기</Link>
+    <Link to="/library" className="home-button dark">내 서재 전체 보기</Link>
   </div>
   <div className="home-carousel-wrap">
     <div className="home-book-carousel" ref={carousel}>

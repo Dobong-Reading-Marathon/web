@@ -65,7 +65,7 @@ export default function AdminParticipantRecords() {
             {log.librarianComment && <p className="admin-records-comment"><b>사서 코멘트</b>{log.librarianComment}</p>}
           </section>; })}</div>}
         </article>)}
-        {detail.books.length === 0 && <article className="admin-records-empty-books">내서재에 등록한 도서가 없습니다.</article>}
+        {detail.books.length === 0 && <article className="admin-records-empty-books">내 서재에 등록한 도서가 없습니다.</article>}
       </section>
     </>}
   </div></AdminLayout>;

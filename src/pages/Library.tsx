@@ -13,7 +13,7 @@ import "./Library.css";
 
 const REVIEW_TARGET = 500;
 
-/** 내서재 카드형: 독서기록 한 건을 카드 한 장으로 보여 줍니다. 최근 기록이 먼저 나옵니다. */
+/** 내 서재 카드형: 독서기록 한 건을 카드 한 장으로 보여 줍니다. 최근 기록이 먼저 나옵니다. */
 export default function Library() {
   const location = useLocation();
   const navigationNotice = (location.state as { notice?: string } | null)?.notice;

@@ -66,7 +66,7 @@ function NotebookPage({ record, pageNo, pageCount, flip, deleting, onDelete }: {
 }
 
 /**
- * 내서재 수첩형: 기록 한 건이 수첩 한 장입니다. 읽은 날짜가 빠른 기록이 앞 장, 가장 최근 기록이 마지막 장입니다.
+ * 내 서재 수첩형: 기록 한 건이 수첩 한 장입니다. 읽은 날짜가 빠른 기록이 앞 장, 가장 최근 기록이 마지막 장입니다.
  * 오른쪽 기록 목록에서 원하는 장으로 바로 넘어갈 수 있고, 점 색으로 상태를 구분합니다.
  */
 export default function LibraryNotes() {

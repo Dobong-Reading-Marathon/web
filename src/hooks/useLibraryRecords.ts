@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getMyReadingLogs, type MyReadingLog } from "../api/myReadingLogs";
 
-/** 내서재 카드형·수첩형·책별로 모아보기에서 쓰는 독서기록 한 건 */
+/** 내 서재 카드형·수첩형·책별로 모아보기에서 쓰는 독서기록 한 건 */
 export type LibraryRecord = MyReadingLog;
 
 /**
