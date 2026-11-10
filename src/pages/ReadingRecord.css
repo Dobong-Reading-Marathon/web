@@ -1,0 +1,592 @@
+.record-page {
+  width: min(1100px, 94%);
+  margin: 24px auto 64px;
+  color: #17231f;
+  font-size: 14px;
+}
+
+.record-page *,
+.record-page *::before,
+.record-page *::after {
+  box-sizing: border-box;
+}
+
+.record-page button,
+.record-page input,
+.record-page select,
+.record-page textarea {
+  font: inherit;
+}
+
+.record-page button {
+  cursor: pointer;
+}
+
+.record-page a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.record-breadcrumb {
+  display: flex;
+  gap: 9px;
+  margin-bottom: 24px;
+  color: #77817c;
+  font-size: 11px;
+}
+
+.record-breadcrumb a,
+.record-add-book {
+  color: #17634f;
+}
+
+.record-hero {
+  min-height: 180px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 32px 5%;
+  border-radius: 22px;
+  color: #fff;
+  background: #2b8065;
+}
+
+.record-hero-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.record-hero h1 {
+  margin: 0 0 8px;
+  font-size: clamp(30px, 4vw, 42px);
+}
+
+.record-hero p {
+  margin: 0;
+  color: #e2f0e9;
+  font-size: 13px;
+}
+
+.record-hero-art {
+  position: absolute;
+  right: 8%;
+  bottom: 0;
+  width: 190px;
+  height: 150px;
+}
+
+.record-art-building {
+  position: absolute;
+  bottom: 0;
+  display: block;
+}
+
+.record-art-back {
+  right: 0;
+  width: 72px;
+  height: 132px;
+  background: #164f40;
+  clip-path: polygon(0 10%, 100% 25%, 100% 100%, 0 100%);
+}
+
+.record-art-front {
+  right: 43px;
+  width: 78px;
+  height: 145px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #f6faf7 0 12px,
+    #bad7c8 13px 14px
+  );
+  clip-path: polygon(0 17%, 100% 0, 100% 100%, 0 100%);
+}
+
+.record-art-small {
+  left: 2px;
+  width: 48px;
+  height: 52px;
+  border-radius: 4px 4px 0 0;
+  background: #b9ddce;
+}
+
+.record-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(270px, 1fr);
+  align-items: start;
+  gap: 22px;
+  margin-top: 34px;
+}
+
+.record-panel {
+  min-width: 0;
+  padding: 24px;
+  border-radius: 22px;
+  background: #eef5f1;
+}
+
+.record-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.record-panel-heading h2,
+.record-side-column h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.record-draft-time {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #5d6862;
+  background: #e6ece8;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.record-form {
+  display: grid;
+  gap: 14px;
+}
+
+.record-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.record-field > span,
+.record-field legend {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.record-field b {
+  color: #77817c;
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.record-field small {
+  color: #77817c;
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.record-field input,
+.record-field select,
+.record-field textarea,
+.record-review-input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #dce3df;
+  border-radius: 11px;
+  outline-color: #17634f;
+  color: #17231f;
+  background: #fff;
+}
+
+.record-field input,
+.record-field select {
+  height: 40px;
+  padding: 0 12px;
+}
+
+.record-add-book {
+  justify-self: start;
+  margin-top: -7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.record-field-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.record-reading-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 12px;
+  color: #496456;
+  background: #e3f0e9;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.record-reading-notice > span {
+  color: #17634f;
+  font-weight: 700;
+}
+
+.record-reading-notice p {
+  margin: 0;
+}
+
+.record-quote-input {
+  min-height: 64px;
+  padding: 11px 12px;
+  resize: vertical;
+}
+
+.record-review-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.record-review-heading label {
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.record-review-heading label b {
+  color: #77817c;
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.record-review-heading label small {
+  color: #77817c;
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.record-voice-badge {
+  border: 0;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #a74c42;
+  background: #fde9e6;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.record-voice-badge.is-listening {
+  color: #fff;
+  background: #b64e43;
+}
+
+.record-review-input {
+  min-height: 185px;
+  padding: 12px;
+  resize: vertical;
+  line-height: 1.7;
+  font-size: 11px;
+}
+
+.record-character-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: -7px;
+  font-size: 9px;
+}
+
+.record-character-row strong {
+  color: #bd762b;
+}
+
+.record-character-row span {
+  color: #77817c;
+}
+
+.record-character-progress {
+  height: 6px;
+  overflow: hidden;
+  margin-top: -8px;
+  border-radius: 999px;
+  background: #dce7e0;
+}
+
+.record-character-progress span {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: #dc7a43;
+}
+
+.record-voice-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 2px;
+}
+
+.record-voice-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fde9e6;
+  font-size: 16px;
+}
+
+.record-voice-note p {
+  margin: 0;
+  color: #77817c;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.record-voice-note strong {
+  color: #17231f;
+  font-size: 13px;
+}
+
+.record-message {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 11px;
+  color: #245d45;
+  background: #dff1e7;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.record-form-actions,
+.record-side-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.record-form-actions {
+  margin-top: 2px;
+}
+
+.record-button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.record-button-outline {
+  border-color: #89958e;
+  color: #102d25;
+  background: #fff;
+}
+
+.record-button-primary {
+  border-color: #102d25;
+  color: #fff;
+  background: #102d25;
+}
+
+.record-side-column {
+  display: grid;
+  gap: 16px;
+}
+
+.record-side-column .record-panel {
+  padding: 20px;
+}
+
+.record-submit-panel > p,
+.record-email-panel > p {
+  margin: 11px 0;
+  color: #58655e;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.record-status-flow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 13px;
+  font-size: 9px;
+}
+
+.record-status-flow span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #e4ebe6;
+}
+
+.record-status-flow i {
+  color: #77817c;
+  font-style: normal;
+}
+
+.record-status-flow .waiting {
+  color: #806020;
+  background: #fff0c9;
+}
+
+.record-status-flow .approved {
+  color: #367454;
+  background: #dff1e7;
+}
+
+.record-submit-panel .record-small-note {
+  margin-bottom: 0;
+  color: #77817c;
+  font-size: 9px;
+}
+
+.record-button-small {
+  min-height: 32px;
+  padding: 0 11px;
+  font-size: 9px;
+}
+
+.record-delete-panel > p {
+  margin: 0 0 12px;
+  color: #77817c;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.record-delete-button {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #b47770;
+  border-radius: 999px;
+  color: #9b5048;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 760px) {
+  .record-page {
+    width: 92%;
+    margin-top: 18px;
+  }
+
+  .record-hero {
+    min-height: 150px;
+    padding: 26px 6%;
+  }
+
+  .record-hero-art {
+    right: -24px;
+    transform: scale(.75);
+    transform-origin: bottom right;
+  }
+
+  .record-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 22px;
+  }
+
+  .record-side-column {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .record-delete-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .record-hero h1 {
+    font-size: 30px;
+  }
+
+  .record-hero p {
+    max-width: 240px;
+    font-size: 11px;
+  }
+
+  .record-panel,
+  .record-side-column .record-panel {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .record-field-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .record-field-grid .record-field:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .record-side-column {
+    grid-template-columns: 1fr;
+  }
+
+  .record-delete-panel {
+    grid-column: auto;
+  }
+
+  .record-draft-time {
+    font-size: 8px;
+  }
+
+  .record-voice-badge {
+    font-size: 9px;
+  }
+}
+
+/* 서평 작성 팁 */
+.record-tip-panel ol {
+  margin-top: 12px;
+  margin-left: 0;
+  padding-left: 24px;
+  list-style: decimal;
+  color: #58655e;
+}
+
+.record-page .record-reading-notice {
+  font-size: 11px;
+  font-weight: 600;
+  color: #354b3f;
+}
+
+.record-page .record-reading-notice > span {
+  font-size: 14px;
+}
+
+.record-page .record-reading-highlight {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.record-form .record-small-note {
+  margin: 0;
+  color: #77817c;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.record-page button:disabled,
+.record-page input:disabled,
+.record-page select:disabled,
+.record-page textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
