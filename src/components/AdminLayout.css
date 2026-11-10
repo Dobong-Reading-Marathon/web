@@ -12,7 +12,7 @@
     align-items: center;
     gap: 32px;
     padding: 0 max(40px, calc((100% - 1200px) / 2));
-    background: #87a79b;
+    background: #2f7d5f;
     color: #fff;
 }
 
@@ -29,16 +29,15 @@
 }
 
 .admin-brand img {
-    width: 160px;
-    height: 100px;
+    width: 40px;
+    height: 40px;
     object-fit: contain;
-    border-radius: 10px;
 }
 
 .admin-brand small {
     display: block;
-    margin-top: 4px;
-    color: #a9cbb9;
+    margin-bottom: 3px;
+    color: #cfe3d8;
     font-size: 11px;
     font-weight: 500;
 }
@@ -59,7 +58,7 @@
     gap: 10px;
     height: 42px;
     padding: 0 16px;
-    color: #bdcdc4;
+    color: #dcebe2;
     text-decoration: none;
     white-space: nowrap;
     font-size: 14px;
@@ -152,8 +151,8 @@
     }
 
     .admin-brand img {
-        width: 33px;
-        height: 33px;
+        width: 30px;
+        height: 30px;
     }
 
     .admin-brand small {

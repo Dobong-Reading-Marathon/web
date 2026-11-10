@@ -5,7 +5,7 @@ import { getAdminSubmissions } from "../api/adminSubmissions";
 import { adminLogout, getAdminMe } from "../api/adminAuth";
 import { getAdminCurrentRound } from "../api/admin";
 import Icon from "./Icon";
-import logo from "../assets/logo.png";
+import logoOnly from "../assets/logoOnly.png";
 import "./AdminLayout.css";
 
 type AdminSection = "overview" | "participants" | "reviews" | "rounds";
@@ -48,7 +48,7 @@ export default function AdminLayout({ active, children }: { active: AdminSection
 
   return <div className="admin-shell">
     <header className="admin-header">
-      <Link className="admin-brand" to="/admin"><img src={logo} alt="" /><span>독서마라톤<small>관리자</small></span></Link>
+      <Link className="admin-brand" to="/admin"><img src={logoOnly} alt="" /><span><small>서울특별시교육청 도봉도서관</small>독서마라톤 관리자</span></Link>
       <nav className="admin-nav" aria-label="관리자 메뉴">{navItems.map((item) => <Link key={item.key} to={item.href} className={active === item.key ? "is-active" : ""}>{item.label}{item.key === "reviews" && pendingCount !== null && <b>{pendingCount}</b>}</Link>)}</nav>
       <div className="admin-header-tools"><span>{roundYear ? `${roundYear} 회차` : "회차 정보를 불러오지 못했어요"}</span><button type="button" onClick={() => void handleLogout()}>로그아웃</button></div>
     </header>

@@ -4,7 +4,6 @@ import { getAdminCurrentRound, getAdminParticipants, type AdminParticipant } fro
 import QRCode from "qrcode";
 import { PUBLIC_SITE_URL } from "../constants/site";
 import Icon from "../components/Icon";
-import Tower from "../components/Tower";
 import AdminLayout from "../components/AdminLayout";
 import "./AdminOverview.css";
 
@@ -65,7 +64,7 @@ export default function AdminOverview() {
   }
 
   return <AdminLayout active="overview"><div className="admin-overview-page">
-    <section className="admin-overview-hero"><Tower w={400} /><div><h1>운영 현황</h1><p>{metrics?.roundYear ?? "—"} 회차 · 오늘 {today} 기준</p><Link to="/admin/participants?status=IN_PROGRESS" className="admin-pill-button dark">심사 대기 현황 보기 <Icon n="arrow" s={17} /></Link></div></section>
+    <section className="admin-overview-hero"><div><h1>운영 현황</h1><p>{metrics?.roundYear ?? "—"} 회차 · 오늘 {today} 기준</p><Link to="/admin/participants?status=IN_PROGRESS" className="admin-pill-button dark">심사 대기 현황 보기 <Icon n="arrow" s={17} /></Link></div></section>
     {error && <p className="admin-data-error" role="alert">{error}</p>}
     <section className="admin-stat-grid" aria-label="운영 통계">
       <article><span>총 참가 신청자</span><b>{loading ? "—" : `${number(metrics?.participants ?? 0)}명`}</b></article>
