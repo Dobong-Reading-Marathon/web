@@ -163,6 +163,8 @@ export default function LibraryBooks() {
                                 <i className={`status-dot status-dot--${record.status}`} aria-hidden="true" />
                                 <b>{formatMonthDay(record.readDate)}</b>
                                 <span>{record.startPage}–{record.endPage}쪽</span>
+                                {/* 서평 미리보기. 서평이 없으면 빈칸으로 둡니다. */}
+                                <span className="book-row-record-review">{record.review?.trim() ?? ""}</span>
                                 <span className="book-row-record-length">서평 {record.reviewLength}자</span>
                                 <Chip k={readingStatusChip(record.status)}>{readingStatusLabel(record.status)}</Chip>
                               </Link>
