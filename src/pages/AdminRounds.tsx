@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import { getAdminCurrentRound } from "../api/admin";
 import type { CurrentRound } from "../api/currentRound";
 import AdminLayout from "../components/AdminLayout";
-import Tower from "../components/Tower";
 import "./AdminRounds.css";
 
 // 우수 서평은 BE 개발 전이라 숨김. 기능이 생기면 "우수작 (개발 전)" 표시가 붙은 주석들을 풀고 예시 대신 API 값을 쓴다.
@@ -62,7 +61,7 @@ export default function AdminRounds() {
   */
 
   return <AdminLayout active="rounds"><div className="admin-rounds-page">
-    <section className="admin-rounds-hero"><Tower w={390} /><div><h1>회차 관리</h1><p>회차별 코스 기준을 만들어요.</p>{/* 우수작 (개발 전): <p>회차별 코스 기준을 만들고 이달의 우수 서평을 선정해요.</p> */}</div></section>
+    <section className="admin-rounds-hero"><h1>회차 관리</h1></section>
     {roundError && <p className="admin-rounds-error" role="alert">{roundError}</p>}
     <div className="admin-rounds-content">
       <div className="admin-rounds-left">

@@ -4,7 +4,6 @@ import { getAdminCurrentRound, getAdminEnrollmentDetail, getAdminParticipants, t
 import Chip from "../components/Chip";
 import AdminLayout from "../components/AdminLayout";
 import Icon from "../components/Icon";
-import Tower from "../components/Tower";
 import "./AdminReviews.css";
 
 // 우수작은 BE 개발 전이라 숨김. 기능이 생기면 "우수작 (개발 전)" 표시가 붙은 주석들을 풀고 예시 대신 API 값을 쓴다.
@@ -170,7 +169,7 @@ export default function AdminReviews() {
   }
 
   return <AdminLayout active="reviews"><div className="admin-reviews-page">
-    <section className="admin-reviews-hero"><Tower w={390} /><div><h1>기록 심사</h1><p>제출된 기록을 보고 승인하거나 보완을 요청해요.</p></div></section>
+    <section className="admin-reviews-hero"><h1>기록 심사</h1></section>
     {error && <p className="admin-review-error" role="alert">{error}</p>}
     <section className="admin-review-workspace">
       <article className="admin-review-inbox">
