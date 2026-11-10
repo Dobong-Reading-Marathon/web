@@ -1,0 +1,121 @@
+/* 내서재: 카드형, 수첩형, 책별로 모아보기 공통 */
+.library-banner-tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px}
+.library-view-switcher{flex-wrap:wrap}
+.library-empty{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* 상태 점 */
+.status-dot{display:inline-block;flex:none;width:10px;height:10px;border-radius:50%;background:#a3ada8}
+.status-dot--DRAFT{background:#a3ada8}
+.status-dot--SUBMITTED{background:#f0b429}
+.status-dot--SAVED{background:#46a578}
+.status-dot--APPROVED{background:#2b6cb0}
+.status-dot--REVISION_REQUESTED{background:#d64535}
+
+/* 카드형 */
+.library-toolbar{display:flex;flex-direction:column;gap:14px}
+.library-toolbar .text-input{max-width:520px}
+.library-book-filter{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:12px 16px;border-radius:12px;background:#e7f2ec;color:#2b3e37;font-size:14px}
+.library-book-filter button{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid #bdd3c6;border-radius:999px;background:#fff;color:#2f7d5f;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.record-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.record-card{display:flex;flex-direction:column;gap:14px;min-width:0;padding:20px;border:1px solid #e1e8e4;border-radius:16px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.record-card:hover{border-color:#9fd3b8;box-shadow:0 8px 24px #14231f12}
+.record-card-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.record-book-no{display:inline-flex;align-items:center;height:26px;padding:0 9px;border-radius:6px;background:#e7f2ec;color:#14523a;font-size:12px;font-weight:800;white-space:nowrap}
+.record-card-top .status-chip{height:26px;font-size:11px}
+.record-card-date{display:inline-flex;align-items:center;gap:4px;margin-left:auto;color:#7a8780;font-size:12px;white-space:nowrap}
+.record-card-title{margin:0;color:#14231f;font-size:19px;line-height:1.35;word-break:keep-all;overflow-wrap:anywhere}
+.record-card-meta{margin:4px 0 0;color:#66756d;font-size:13px}
+.record-card-quote{margin:0;padding:12px 14px;border-left:3px solid #46a578;border-radius:0 10px 10px 0;background:#f2f9f5;color:#33433c;font-size:13px;font-style:italic;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.record-card-comment{margin:0;padding:10px 12px;border-radius:10px;background:#fce9e6;color:#7d1c12;font-size:12px;line-height:1.5}
+.record-card-comment b{margin-right:4px}
+.record-card-review{flex:1;margin:0;color:#3d4a44;font-size:13px;line-height:1.7;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.record-card-review.is-empty{color:#98a29d}
+.record-card-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid #edf1ee}
+.record-card-length{display:inline-flex;align-items:center;gap:4px;color:#47564f;font-size:13px}
+.record-card-length small{color:#8a958f;font-size:11px}
+.record-card-length.is-met{color:#2f7d5f}
+.record-card-actions{display:inline-flex;gap:4px}
+.record-card-actions a,.record-card-actions button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:0;border-radius:8px;background:transparent;color:#7a8780;cursor:pointer}
+.record-card-actions a:hover,.record-card-actions button:hover{background:#f0f5f2;color:#14231f}
+.record-card-actions button:hover{color:#b42318}
+.record-card-actions button:disabled{opacity:.5;cursor:wait}
+
+/* 수첩형 */
+.notes-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;align-items:start;gap:28px}
+.notebook{position:relative;display:flex;flex-direction:column;min-height:560px;padding:32px 40px 22px 72px;border:1px solid #e6e0cf;border-radius:8px 20px 20px 8px;background-color:#fffdf7;background-image:repeating-linear-gradient(to bottom,transparent 0 31px,#efeee6 31px 32px);box-shadow:0 2px 0 #f1ecdd,0 4px 0 #e9e3d1,0 16px 40px #14231f14;perspective:1600px}
+.notebook::before{content:"";position:absolute;top:24px;bottom:24px;left:22px;width:16px;background:radial-gradient(circle at 8px 8px,#d9d3c1 0 5px,transparent 6px) 0 0/16px 40px repeat-y}
+.notebook::after{content:"";position:absolute;top:0;bottom:0;left:52px;border-left:2px solid #f2c9c3}
+.notebook-page{display:flex;flex:1;flex-direction:column;gap:18px;transform-origin:left center}
+.notebook-page.flip-next{animation:notebook-flip-next .38s ease-out}
+.notebook-page.flip-prev{animation:notebook-flip-prev .38s ease-out}
+@keyframes notebook-flip-next{from{opacity:0;transform:rotateY(-14deg) translateX(24px)}to{opacity:1;transform:none}}
+@keyframes notebook-flip-prev{from{opacity:0;transform:rotateY(14deg) translateX(-24px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.notebook-page.flip-next,.notebook-page.flip-prev{animation:none}}
+.notebook-page-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;color:#5d6b64;font-size:13px}
+.notebook-divider{color:#c5ccc8}
+.notebook-page-no{margin-left:auto;color:#98a29d;font-size:12px;font-weight:700}
+.notebook-title{margin:0;color:#14231f;font-size:24px;line-height:1.35;word-break:keep-all;overflow-wrap:anywhere}
+.notebook-title small{color:#66756d;font-size:14px;font-weight:500}
+.notebook-quote{margin:0;padding:12px 16px;border-left:3px solid #46a578;background:#f0f8f3cc;color:#33433c;font-size:14px;font-style:italic;line-height:1.7}
+.notebook-quote b{font-style:normal;margin-right:4px}
+.notebook-comment{display:flex;flex-direction:column;gap:4px;margin:0;padding:12px 16px;border-radius:10px;background:#fce9e6;color:#7d1c12;font-size:13px;line-height:1.6}
+.notebook-review{padding:16px 18px;border:1px solid #e6e8e2;border-radius:12px;background:#ffffffd9}
+.notebook-review h3{margin:0 0 8px;color:#14231f;font-size:14px}
+.notebook-review h3 span{color:#2f7d5f}
+.notebook-review p{margin:0;color:#33433c;font-size:14px;line-height:1.85;white-space:pre-line;overflow-wrap:anywhere}
+.notebook-review p.is-empty{color:#98a29d}
+.notebook-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:auto}
+.notebook-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:24px;padding-top:16px;border-top:1px dashed #ddd8c8}
+.notebook-pager span{color:#5d6b64;font-size:13px;font-weight:700}
+.notebook-pager button{display:inline-flex;align-items:center;gap:4px;min-height:38px;padding:0 14px;border:1px solid #d8dfda;border-radius:999px;background:#fff;color:#2b3e37;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.notebook-pager button:hover:not(:disabled){border-color:#2f7d5f;color:#2f7d5f}
+.notebook-pager button:disabled{opacity:.4;cursor:default}
+.notes-nav{position:sticky;top:24px;display:flex;flex-direction:column;gap:12px;padding:20px 14px 14px;border:1px solid #e1e8e4;border-radius:16px;background:#f6faf7}
+.notes-nav h2{margin:0;padding:0 6px;color:#14231f;font-size:16px}
+.notes-nav h2 small{color:#7a8780;font-size:12px;font-weight:600}
+.notes-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin:0;padding:0 6px 10px;border-bottom:1px solid #e1e8e4;list-style:none;color:#5d6b64;font-size:12px}
+.notes-legend li{display:inline-flex;align-items:center;gap:5px}
+.notes-legend .status-dot{width:8px;height:8px}
+.notes-nav-list{max-height:min(560px,62vh);margin:0;padding:0;overflow-y:auto;list-style:none}
+.notes-nav-list button{display:grid;grid-template-columns:auto 62px minmax(0,1fr);align-items:center;gap:10px;width:100%;padding:11px 8px;border:0;border-radius:10px;background:transparent;color:#14231f;font:inherit;text-align:left;cursor:pointer}
+.notes-nav-list button:hover{background:#ebf3ee}
+.notes-nav-list button.is-current{background:#dceee4}
+.notes-nav-list b{color:#2f7d5f;font-size:13px;white-space:nowrap}
+.notes-nav-title{overflow:hidden;font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+
+@media(max-width:900px){
+  .notes-layout{grid-template-columns:1fr}
+  .notes-nav{position:static}
+  .notes-nav-list{max-height:320px}
+}
+@media(max-width:600px){
+  .library-banner-tools{width:100%}
+  .library-view-switcher{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
+  .library-view-switcher a{justify-content:center;padding:0 6px;font-size:13px;white-space:nowrap}
+  .library-view-switcher a svg{display:none}
+  .record-card-grid{grid-template-columns:1fr;gap:14px}
+  .record-card{padding:16px}
+  .notebook{min-height:0;padding:22px 18px 16px 46px}
+  .notebook::before{left:12px;width:12px;background-size:12px 32px;background-image:radial-gradient(circle at 6px 6px,#d9d3c1 0 4px,transparent 5px)}
+  .notebook::after{left:34px}
+  .notebook-title{font-size:20px}
+  .notebook-pager button{padding:0 10px}
+}
+
+/* 기록장 인쇄: 수첩 장만 한 장씩 인쇄합니다. */
+@media print{
+  body:has(.notes-root) .site-header,
+  body:has(.notes-root) .site-footer,
+  body:has(.notes-root) .mobile-tab-bar,
+  .notes-root .library-banner,
+  .notes-root .notes-nav,
+  .notes-root .notebook-pager,
+  .notes-root .notebook-actions{display:none!important}
+  .notes-root{padding:0!important}
+  .notes-layout{display:block}
+  .notebook{min-height:0;padding:0;border:0;background:none;box-shadow:none}
+  .notebook::before,.notebook::after{display:none}
+  .notebook-page{animation:none!important;padding:8mm 0;break-after:page}
+  .notebook-page:last-of-type{break-after:auto}
+}

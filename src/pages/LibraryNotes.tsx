@@ -1,320 +1,241 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import Chip, { type ChipKind } from "../components/Chip";
-import Cover from "../components/Cover";
+import { useEffect, useMemo, useRef, useState, type TouchEvent } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import Chip from "../components/Chip";
 import Icon from "../components/Icon";
-import Tower from "../components/Tower";
+import LibraryHeader from "../components/LibraryHeader";
 import UserLayout from "../components/UserLayout";
-import { getBooks, type LibraryBookStatus } from "../api/books";
-import { getReadingCalendar, getReadingLogDetail, type ReadingLogDetail } from "../api/calendar";
-import { getCurrentEnrollment } from "../api/enrollments";
 import { deleteReadingLog } from "../api/readingLogs";
+import type { ReadingLogDetail } from "../api/calendar";
+import {
+  EDIT_LABELS, READING_STATUS_ORDER, formatMonthDay, isDeletableRecord, isEditableRecord, readingStatusChip, readingStatusLabel,
+} from "../constants/readingStatus";
+import { reviewLength, useLibraryRecords, useRecordDetails, type LibraryRecord } from "../hooks/useLibraryRecords";
+import "./Library.css";
 
-type ReadingRecord = {
-  id: number;
-  date: string;
-  title: string;
-  initial: string;
-  author: string;
-  pages: string;
-  status: string;
-  statusCode: string;
-  chipKind: ChipKind;
-  totalPages: number;
-  ownership: string;
-  readDate: string;
-  children: boolean;
-};
+type FlipDirection = "next" | "prev" | null;
 
-const statusLabels: Record<LibraryBookStatus | string, string> = {
-  NO_RECORD: "기록 전",
-  DRAFT: "임시저장",
-  SUBMITTED: "심사 대기",
-  APPROVED: "승인",
-  REVISION_REQUESTED: "보완요청",
-  SAVED: "저장",
-};
+function NotebookPage({ record, detail, pageNo, pageCount, flip, deleting, onDelete }: {
+  record: LibraryRecord;
+  detail: ReadingLogDetail | undefined;
+  pageNo: number;
+  pageCount: number;
+  flip: FlipDirection;
+  deleting: boolean;
+  onDelete: () => void;
+}) {
+  const editable = isEditableRecord(record.status);
+  const deletable = isDeletableRecord(record.status);
+  const length = reviewLength(detail?.review);
+  return (
+    <article className={`notebook-page${flip ? ` flip-${flip}` : ""}`} aria-label={`${pageNo}쪽 / 전체 ${pageCount}쪽`}>
+      <header className="notebook-page-head">
+        <span className="record-book-no">제 {record.bookNo} 권</span>
+        <time dateTime={record.readDate}>{record.readDate}</time>
+        <span className="notebook-divider" aria-hidden="true">|</span>
+        <span>{record.startPage}–{record.endPage}쪽</span>
+        <Chip k={readingStatusChip(record.status)}>{readingStatusLabel(record.status)}</Chip>
+        <span className="notebook-page-no">{pageNo} / {pageCount}</span>
+      </header>
+      <h2 className="notebook-title">『{record.title}』{record.author && <small> - {record.author} 저</small>}</h2>
 
-const statusKinds: Record<string, ChipKind> = {
-  DRAFT: "draft",
-  SUBMITTED: "wait",
-  APPROVED: "ok",
-  REVISION_REQUESTED: "fix",
-  SAVED: "ok", // 승인과 같은 초록색
-};
+      {detail?.librarianComment && (
+        <p className="notebook-comment"><b>사서 코멘트{detail.reviewedAt ? ` · ${formatMonthDay(detail.reviewedAt)}` : ""}</b>{detail.librarianComment}</p>
+      )}
+      {detail?.quote?.trim() && (
+        <blockquote className="notebook-quote"><b>[마음에 드는 글귀]</b> “{detail.quote.trim()}”</blockquote>
+      )}
+      <section className="notebook-review">
+        <h3>[독서 소감 / 서평] {detail && <span>({length}자)</span>}</h3>
+        <p className={detail?.review?.trim() ? "" : "is-empty"}>
+          {detail ? detail.review?.trim() || "아직 서평을 쓰지 않았어요." : "기록을 불러오는 중이에요."}
+        </p>
+      </section>
 
-function formatDate(date: string) {
-  const [, month, day] = date.split("-").map(Number);
-  return `${month}월 ${day}일`;
+      <footer className="notebook-actions">
+        {editable ? (
+          <>
+            <Link to={`/records/${record.id}/edit`} className="button button--primary is-small"><Icon n="pen" s={15} /> {EDIT_LABELS[record.status]}</Link>
+            {deletable && (
+              <button type="button" className="button button--danger-outline is-small" onClick={onDelete} disabled={deleting}>
+                <Icon n="trash" s={15} /> {deleting ? "삭제 중" : "삭제"}
+              </button>
+            )}
+            {!deletable && <span className="text-extra-small text-muted">제출한 기록은 삭제할 수 없어요.</span>}
+          </>
+        ) : (
+          <span className="text-extra-small text-muted">{record.status === "APPROVED" ? "승인된" : "심사 중인"} 기록은 수정하거나 삭제할 수 없어요.</span>
+        )}
+      </footer>
+    </article>
+  );
 }
 
-function formatPages(startPage: number, endPage: number) {
-  return `${startPage}–${endPage}쪽`;
-}
-
-// 수정은 임시저장·보완요청·저장 상태에서 됩니다 (서버 규칙과 같음).
-function isEditable(statusCode: string) {
-  return statusCode === "DRAFT" || statusCode === "REVISION_REQUESTED" || statusCode === "SAVED";
-}
-
-// 삭제는 제출 전(임시저장) 기록만 됩니다. 한 번 제출한 기록은 지울 수 없습니다 (서버 규칙과 같음).
-function isDeletable(statusCode: string) {
-  return statusCode === "DRAFT";
-}
-
-// 수정 버튼 이름: 보완요청은 고쳐서 다시 제출, 저장은 서평을 채워 제출, 임시저장은 이어서 작성
-const editLabels: Record<string, string> = {
-  REVISION_REQUESTED: "고쳐서 다시 제출",
-  SAVED: "수정 · 서평 제출",
-  DRAFT: "이어서 작성",
-};
-
-function reviewCharCount(review: string | null | undefined) {
-  return Array.from(review ?? "").length;
-}
-
+/**
+ * 내서재 수첩형: 기록 한 건이 수첩 한 장입니다. 읽은 날짜가 빠른 기록이 앞 장, 가장 최근 기록이 마지막 장입니다.
+ * 오른쪽 기록 목록에서 원하는 장으로 바로 넘어갈 수 있고, 점 색으로 상태를 구분합니다.
+ */
 export default function LibraryNotes() {
-  const [records, setRecords] = useState<ReadingRecord[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<ReadingLogDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [searchParams] = useSearchParams();
+  const { records, loading, error, removeRecord } = useLibraryRecords();
+  const [flip, setFlip] = useState<FlipDirection>(null);
+  const [printing, setPrinting] = useState(false);
+  const [actionError, setActionError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const navListRef = useRef<HTMLOListElement>(null);
 
+  // 카드형에서 넘어오면 ?log=기록ID 장을 먼저 엽니다. 장을 넘길 때는 주소를 바꾸지 않습니다.
+  // (주소가 바뀌면 RequireUser가 로그인 확인을 다시 하면서 화면 전체를 새로 그리기 때문입니다.)
+  const [currentId, setCurrentId] = useState<number | null>(() => Number(searchParams.get("log")) || null);
+  const requestedIndex = records.findIndex((record) => record.id === currentId);
+  const pageIndex = requestedIndex >= 0 ? requestedIndex : records.length - 1;
+  const current = records[pageIndex];
+
+  // 지금 장과 앞뒤 장의 상세를 미리 불러옵니다. 인쇄할 때는 모든 장을 불러옵니다.
+  const detailIds = useMemo(() => printing
+    ? records.map((record) => record.id)
+    : [records[pageIndex - 1], records[pageIndex], records[pageIndex + 1]].filter(Boolean).map((record) => record.id),
+  [printing, records, pageIndex]);
+  const { details, failed } = useRecordDetails(detailIds);
+  const allDetailsLoaded = records.every((record) => details.has(record.id));
+
+  function goTo(index: number) {
+    const target = records[index];
+    if (!target || index === pageIndex) return;
+    setFlip(index > pageIndex ? "next" : "prev");
+    setCurrentId(target.id);
+  }
+
+  // 키보드 ← → 로 장을 넘깁니다 (입력칸에 있을 때는 제외).
   useEffect(() => {
-    const controller = new AbortController();
-    async function loadRecords() {
-      try {
-        const [enrollment, books] = await Promise.all([
-          getCurrentEnrollment(controller.signal),
-          getBooks({ signal: controller.signal }),
-        ]);
-        if (controller.signal.aborted) return;
-        const bookMap = new Map(books.map((book) => [book.enrollmentBookId, book]));
-        if (!enrollment) {
-          setRecords([]);
-          return;
-        }
-
-        const calendars = await Promise.all(
-          Array.from({ length: 12 }, (_, index) =>
-            getReadingCalendar(enrollment.year, index + 1, controller.signal),
-          ),
-        );
-        if (controller.signal.aborted) return;
-
-        const nextRecords = calendars.flatMap((calendar) =>
-          calendar.days.flatMap((day) => day.logs.map((log) => {
-            const book = bookMap.get(log.enrollmentBookId);
-            return {
-              id: log.readingLogId,
-              date: formatDate(day.date),
-              title: log.bookTitle,
-              initial: log.bookTitle.slice(0, 1) || "책",
-              author: book?.author ?? "",
-              pages: formatPages(log.startPage, log.endPage),
-              status: statusLabels[log.status] ?? log.status,
-              statusCode: log.status,
-              chipKind: statusKinds[log.status] ?? "line",
-              totalPages: book?.totalPages ?? 0,
-              ownership: book?.libraryOwned ? "소장도서" : "소장 아님",
-              readDate: formatDate(day.date),
-              children: book?.children ?? false,
-            } satisfies ReadingRecord;
-          })),
-        ).sort((a, b) => {
-          const [aMonth, aDay] = a.date.split("월 ").map(Number);
-          const [bMonth, bDay] = b.date.split("월 ").map(Number);
-          return bMonth - aMonth || bDay - aDay || b.id - a.id;
-        });
-
-        setRecords(nextRecords);
-        setSelectedId(nextRecords[0]?.id ?? null);
-      } catch (reason) {
-        if (!controller.signal.aborted) {
-          setError(reason instanceof Error ? reason.message : "독서 기록을 불러오지 못했습니다.");
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
+    function onKey(event: KeyboardEvent) {
+      const target = event.target;
+      if (target instanceof Element && target.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (event.key === "ArrowLeft") goTo(pageIndex - 1);
+      if (event.key === "ArrowRight") goTo(pageIndex + 1);
     }
-    void loadRecords();
-    return () => controller.abort();
-  }, []);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
+  // 목록에서 지금 장이 보이도록 목록 안에서만 스크롤합니다.
   useEffect(() => {
-    if (selectedId === null) {
-      setSelectedDetail(null);
-      return;
+    const list = navListRef.current;
+    const item = list?.querySelector<HTMLElement>(".is-current");
+    if (!list || !item) return;
+    const top = item.offsetTop - list.offsetTop;
+    if (top < list.scrollTop || top + item.offsetHeight > list.scrollTop + list.clientHeight) {
+      list.scrollTop = top - list.clientHeight / 2 + item.offsetHeight / 2;
     }
-    const controller = new AbortController();
-    setDetailLoading(true);
-    setSelectedDetail(null);
-    getReadingLogDetail(selectedId, controller.signal)
-      .then(setSelectedDetail)
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted) {
-          setError(reason instanceof Error ? reason.message : "기록 상세를 불러오지 못했습니다.");
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setDetailLoading(false);
-      });
-    return () => controller.abort();
-  }, [selectedId]);
+  }, [current?.id, records.length]);
 
-  const selectedRecord = records.find((record) => record.id === selectedId);
-  const selectedEditable = selectedRecord ? isEditable(selectedRecord.statusCode) : false;
-  const selectedDeletable = selectedRecord ? isDeletable(selectedRecord.statusCode) : false;
-  const reviewWords = reviewCharCount(selectedDetail?.review);
+  // 모든 장의 상세가 오면 인쇄 창을 엽니다.
+  useEffect(() => {
+    if (!printing || !allDetailsLoaded) return;
+    const timer = window.setTimeout(() => { window.print(); setPrinting(false); }, 50);
+    return () => window.clearTimeout(timer);
+  }, [printing, allDetailsLoaded]);
 
-  async function handleDelete() {
-    if (!selectedRecord || !selectedDeletable) return;
-    if (!window.confirm(`${selectedRecord.date} ‘${selectedRecord.title}’ 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) return;
+  function onTouchEnd(event: TouchEvent) {
+    const start = touchStartX.current;
+    touchStartX.current = null;
+    if (start === null) return;
+    const distance = event.changedTouches[0].clientX - start;
+    if (Math.abs(distance) < 60) return;
+    goTo(distance < 0 ? pageIndex + 1 : pageIndex - 1);
+  }
 
+  async function handleDelete(record: LibraryRecord) {
+    if (!window.confirm(`${record.readDate} ‘${record.title}’ 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) return;
     setDeleting(true);
-    setError("");
+    setActionError("");
     try {
-      await deleteReadingLog(selectedRecord.id);
-      // 목록에서 빼고, 같은 자리의 다음 기록을 고릅니다.
-      const index = records.findIndex((record) => record.id === selectedRecord.id);
-      const nextRecords = records.filter((record) => record.id !== selectedRecord.id);
-      setRecords(nextRecords);
-      setSelectedId(nextRecords[Math.min(index, nextRecords.length - 1)]?.id ?? null);
+      await deleteReadingLog(record.id);
+      const next = records[pageIndex + 1] ?? records[pageIndex - 1];
+      removeRecord(record.id);
+      setFlip(null);
+      setCurrentId(next?.id ?? null);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "기록을 삭제하지 못했어요. 다시 시도해 주세요.");
+      setActionError(reason instanceof Error ? reason.message : "기록을 삭제하지 못했어요. 다시 시도해 주세요.");
     } finally {
       setDeleting(false);
     }
   }
 
+  const newestFirst = [...records].reverse();
+
   return (
     <UserLayout active="lib">
-      <section className="content-section is-top">
-        <div className="breadcrumb">
-          <Link to="/library">내서재</Link>
-          <Icon n="chr" s={14} sw={1.8} />
-          수첩형 · 기록 상세
-        </div>
+      <section className="content-section is-top notes-root">
+        <LibraryHeader
+          active="notes"
+          actions={records.length > 0 && (
+            <button type="button" className="button" onClick={() => setPrinting(true)} disabled={printing}>
+              <Icon n="printer" s={16} sw={1.8} /> {printing ? "인쇄 준비 중…" : "기록장 인쇄 · PDF"}
+            </button>
+          )}
+        />
+        {(error || actionError) && <div className="notice notice--danger" role="alert">{error || actionError}</div>}
+        {failed && <p className="text-small text-muted">일부 기록을 불러오지 못했어요. 새로고침해 보세요.</p>}
 
-        <div className="page-banner notes-page-banner">
-          <Tower w={380} />
-          <div className="page-heading-row">
-            <div>
-              <h1 className="page-title">수첩형 · 기록 상세</h1>
-              <p className="page-description">날짜순으로 기록을 훑고, 한 건씩 열어 수정하거나 다시 제출해요.</p>
-            </div>
-            <div className="view-switcher">
-              <Link to="/library"><Icon n="grid" s={16} sw={1.8} /> 카드형</Link>
-              <Link to="/library/notes" className="is-active" aria-current="page"><Icon n="list" s={16} sw={1.8} /> 수첩형</Link>
-            </div>
-          </div>
-        </div>
-
-        {error && <div className="notice notice--danger" role="alert">{error}</div>}
         {loading ? (
-          <div className="content-card text-muted">독서 기록을 불러오는 중이에요.</div>
-        ) : selectedRecord ? (
-          <div className="grid--three-two-columns notes-detail-layout">
-            <div className="content-card notes-list-card">
-              <div className="content-card-header">
-                <h2 className="card-title">수첩형 보기</h2>
-                <div className="action-group">
-                  <button type="button" className="button is-small" onClick={() => window.print()}><Icon n="printer" s={15} sw={1.8} /> 인쇄</button>
-                  <button type="button" className="button is-small" onClick={() => window.print()}><Icon n="download" s={15} sw={1.8} /> PDF</button>
-                </div>
-              </div>
-              <p className="text-small text-muted notes-list-caption">인쇄 미리보기 · 읽은 날짜 최신순</p>
-              <div className="reading-record-list">
-                {records.map((record) => (
-                  <button
-                    type="button"
-                    key={record.id}
-                    className={`reading-record-row${record.id === selectedId ? " is-selected" : ""}`}
-                    onClick={() => setSelectedId(record.id)}
-                    aria-pressed={record.id === selectedId}
-                  >
-                    <b className="reading-record-date">{record.date}</b>
-                    <span className="reading-record-summary"><strong>{record.title} · {record.pages}</strong></span>
-                    <Chip k={record.chipKind}>{record.status}</Chip>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <aside className="content-card record-detail-card">
-              <div className="content-card-header">
-                <h2 className="card-title">기록 상세</h2>
-                <Chip k={selectedRecord.chipKind}>{selectedRecord.status}</Chip>
-              </div>
-              <div className="record-book-heading">
-                <Cover ch={selectedRecord.initial} />
-                <div>
-                  <h3 className="card-title">{selectedRecord.title}</h3>
-                  <p className="text-small text-muted">{selectedRecord.author} · {selectedRecord.ownership} · 전체 {selectedRecord.totalPages}쪽</p>
-                </div>
-              </div>
-              <p className="text-small text-muted">읽은 쪽 {selectedRecord.pages.replace("쪽", "")} · 읽은 날짜 {selectedRecord.readDate}</p>
-              {selectedDetail?.librarianComment && (
-                <div className="notice notice--danger reviewer-comment">
-                  <Icon n="bell" s={18} />
-                  <div><b>사서 코멘트{selectedDetail.reviewedAt ? ` · ${formatDate(selectedDetail.reviewedAt.slice(0, 10))}` : ""}</b><br />{selectedDetail.librarianComment}</div>
-                </div>
-              )}
-              {selectedDetail?.quote?.trim() && (
-                <div className="record-detail-section">
-                  <b className="text-small">마음에 드는 글귀</b>
-                  <p className="text-muted">{selectedDetail.quote}</p>
-                </div>
-              )}
-              <div className="record-detail-section">
-                <div className="space-between-row">
-                  <b className="text-small">서평</b>
-                  <b className="review-word-count">{detailLoading ? "—" : reviewWords} / 500자</b>
-                </div>
-                <div className="progress-bar is-orange"><i style={{ width: `${Math.min(reviewWords / 500 * 100, 100)}%` }} /></div>
-                <p className="text-small text-muted">{detailLoading ? "기록을 불러오는 중이에요." : selectedDetail?.review || "아직 쓰지 않았어요."}</p>
-              </div>
-              {/* 고칠 수 있는 기록에만 버튼을 보이고, 나머지는 이유만 안내합니다. */}
-              {selectedEditable ? (
-                <div className="action-group record-detail-actions">
-                  <Link to={`/records/${selectedRecord.id}/edit`} className="button button--primary">
-                    <Icon n="pen" s={15} /> {editLabels[selectedRecord.statusCode]}
-                  </Link>
-                  {selectedDeletable && (
-                    <button
-                      type="button"
-                      className="button button--danger-outline"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                    >
-                      <Icon n="trash" s={15} /> {deleting ? "삭제 중" : "삭제"}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <p className="text-extra-small text-muted">
-                  {selectedRecord.statusCode === "APPROVED" ? "승인된" : "심사 중인"} 기록은 수정하거나 삭제할 수 없어요.
-                </p>
-              )}
-              {selectedEditable && !selectedDeletable && (
-                <p className="text-extra-small text-muted">제출한 기록은 삭제할 수 없어요.</p>
-              )}
-            </aside>
+          <div className="content-card text-muted">독서기록을 불러오는 중이에요.</div>
+        ) : !current ? (
+          <div className="content-card text-muted library-empty">
+            아직 독서기록이 없어요. <Link to="/records/new" className="inline-link">첫 기록 쓰기</Link>
           </div>
         ) : (
-          <div className="content-card text-muted">표시할 독서 기록이 없어요.</div>
-        )}
+          <div className="notes-layout">
+            <div className="notebook" onTouchStart={(event) => { touchStartX.current = event.touches[0].clientX; }} onTouchEnd={onTouchEnd}>
+              {printing ? (
+                records.map((record, index) => (
+                  <NotebookPage key={record.id} record={record} detail={details.get(record.id)} pageNo={index + 1} pageCount={records.length} flip={null} deleting={false} onDelete={() => undefined} />
+                ))
+              ) : (
+                <NotebookPage
+                  key={current.id}
+                  record={current}
+                  detail={details.get(current.id)}
+                  pageNo={pageIndex + 1}
+                  pageCount={records.length}
+                  flip={flip}
+                  deleting={deleting}
+                  onDelete={() => void handleDelete(current)}
+                />
+              )}
+              <nav className="notebook-pager" aria-label="수첩 넘기기">
+                <button type="button" onClick={() => goTo(pageIndex - 1)} disabled={pageIndex <= 0}><Icon n="chl" s={18} /> 이전 장</button>
+                <span>{pageIndex + 1} / {records.length}</span>
+                <button type="button" onClick={() => goTo(pageIndex + 1)} disabled={pageIndex >= records.length - 1}>다음 장 <Icon n="chr" s={18} /></button>
+              </nav>
+            </div>
 
-        <div className="content-card content-card--mint review-status-card">
-          <h2 className="card-title">심사 상태</h2>
-          <div className="review-status-flow">
-            <Chip k="draft">임시저장</Chip><span>→</span><Chip k="wait">심사 대기</Chip><span>→</span>
-            <Chip k="ok">승인</Chip><span className="text-muted">또는</span><Chip k="fix">보완요청</Chip>
-            <span className="text-muted">· 서평 500자 미만은 제출하면 바로</span><Chip k="ok">저장</Chip>
+            <aside className="notes-nav" aria-label="기록 목록">
+              <h2>기록 목록 <small>{records.length}건</small></h2>
+              <ul className="notes-legend" aria-label="점 색 안내">
+                {READING_STATUS_ORDER.map((status) => (
+                  <li key={status}><i className={`status-dot status-dot--${status}`} />{readingStatusLabel(status)}</li>
+                ))}
+              </ul>
+              <ol className="notes-nav-list" ref={navListRef}>
+                {newestFirst.map((record) => {
+                  const index = records.indexOf(record);
+                  const isCurrent = index === pageIndex;
+                  return (
+                    <li key={record.id}>
+                      <button type="button" className={isCurrent ? "is-current" : ""} aria-current={isCurrent ? "page" : undefined} onClick={() => goTo(index)}>
+                        <i className={`status-dot status-dot--${record.status}`} title={readingStatusLabel(record.status)} />
+                        <span className="sr-only">{readingStatusLabel(record.status)},</span>
+                        <b>{formatMonthDay(record.readDate)}</b>
+                        <span className="notes-nav-title">{record.title} · {record.endPage}쪽</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </aside>
           </div>
-        </div>
+        )}
       </section>
     </UserLayout>
   );
