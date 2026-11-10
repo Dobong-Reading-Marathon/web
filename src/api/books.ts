@@ -139,7 +139,7 @@ async function readApiError(response: Response): Promise<BookApiError> {
   const fallback = response.status === 401
     ? "로그인이 필요하거나 로그인 정보가 만료됐어요. 다시 로그인해 주세요."
     : response.status === 409
-      ? "이미 내서재에 등록한 도서입니다."
+      ? "이미 내 서재에 등록한 도서입니다."
       : response.status >= 500
         ? "도서 등록 서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요."
         : `도서를 등록하지 못했습니다. (${response.status})`;

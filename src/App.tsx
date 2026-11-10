@@ -6,6 +6,7 @@ import Join from "./pages/Join.tsx";
 import Certificate from "./pages/Certificate.tsx";
 import Library from "./pages/Library.tsx";
 import LibraryNotes from "./pages/LibraryNotes.tsx";
+import LibraryBooks from "./pages/LibraryBooks.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicy.tsx";
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="/" element={<HomeEntry />} />
         <Route path="/library" element={<RequireUser><Library /></RequireUser>} />
         <Route path="/library/notes" element={<RequireUser><LibraryNotes /></RequireUser>} />
+        <Route path="/library/books" element={<RequireUser><LibraryBooks /></RequireUser>} />
         <Route path="/calendar" element={<RequireUser><Calendar /></RequireUser>} />
         <Route path="/rules" element={<Rules />} />
         <Route path="/join" element={<RequireUser><Join /></RequireUser>} />

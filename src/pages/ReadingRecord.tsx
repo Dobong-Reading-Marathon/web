@@ -86,7 +86,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
   // 수정 화면: 불러온 값(되돌리기용), 불러오는 중, 불러오기 실패, 사서 코멘트
   const [loadedDraft, setLoadedDraft] = useState<Draft | null>(null);
   const [logLoading, setLogLoading] = useState(isEditMode && !invalidEditId);
-  const [logError, setLogError] = useState(invalidEditId ? "기록을 찾을 수 없어요. 내서재에서 다시 골라 주세요." : "");
+  const [logError, setLogError] = useState(invalidEditId ? "기록을 찾을 수 없어요. 내 서재에서 다시 골라 주세요." : "");
   const [librarianComment, setLibrarianComment] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
       .then((items) => setBooks(items))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        setBooksError(error instanceof Error ? error.message : "내서재 도서를 불러오지 못했어요.");
+        setBooksError(error instanceof Error ? error.message : "내 서재 도서를 불러오지 못했어요.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setBooksLoading(false);
@@ -126,7 +126,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
       })
       .catch(() => {
         // 없는 기록과 남의 기록은 서버가 똑같이 404로 응답합니다.
-        if (!controller.signal.aborted) setLogError("기록을 불러오지 못했어요. 내서재에서 다시 골라 주세요.");
+        if (!controller.signal.aborted) setLogError("기록을 불러오지 못했어요. 내 서재에서 다시 골라 주세요.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setLogLoading(false);
@@ -214,7 +214,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
     setBusy(true);
     try {
       await save();
-      setMessage("임시저장했어요. 내서재 수첩형에서 이어서 볼 수 있어요.");
+      setMessage("임시저장했어요. 내 서재 수첩형에서 이어서 볼 수 있어요.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "임시저장하지 못했어요. 다시 시도해 주세요.");
     } finally {
@@ -244,7 +244,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
         setSavedLog({ ...saved, status: "SUBMITTED" });
         navigate("/library", {
           replace: true,
-          state: { notice: "서평을 제출했어요. 심사 결과는 알림과 내서재에서 확인할 수 있어요." },
+          state: { notice: "서평을 제출했어요. 심사 결과는 알림과 내 서재에서 확인할 수 있어요." },
         });
       } else {
         setSavedLog({ ...saved, status: "SAVED" });
@@ -273,7 +273,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
     setDraft(EMPTY_DRAFT);
     setSavedLog(null);
     setMessage(hadSaved
-      ? "입력을 지웠어요. 이미 저장한 기록은 내서재 수첩형에 남아 있어요."
+      ? "입력을 지웠어요. 이미 저장한 기록은 내 서재 수첩형에 남아 있어요."
       : "입력을 지웠어요.");
   }
 
@@ -301,7 +301,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
     <UserLayout active="lib">
       <main className="record-page">
         <nav className="record-breadcrumb" aria-label="현재 위치">
-          <Link to="/library">내서재</Link>
+          <Link to="/library">내 서재</Link>
           <span aria-hidden="true">›</span>
           <span>{isEditMode ? "독서기록 수정" : "독서기록 작성"}</span>
         </nav>
@@ -327,7 +327,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
             <div className="record-panel-heading">
               <h2>기록 정보</h2>
               <span className="record-draft-time">
-                {savedLog ? "저장한 기록이에요" : "임시저장하면 내서재에 보관돼요"}
+                {savedLog ? "저장한 기록이에요" : "임시저장하면 내 서재에 보관돼요"}
               </span>
             </div>
 
@@ -341,7 +341,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
                   required
                 >
                   <option value="">
-                    {booksLoading ? "내서재 도서를 불러오는 중이에요" : "기록할 도서를 골라 주세요"}
+                    {booksLoading ? "내 서재 도서를 불러오는 중이에요" : "기록할 도서를 골라 주세요"}
                   </option>
                   {books.map((book) => (
                     <option key={book.enrollmentBookId} value={book.enrollmentBookId}>
@@ -361,7 +361,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
               {booksError && <p className="record-message" role="alert">{booksError}</p>}
               {!booksLoading && !booksError && books.length === 0 && (
                 <p className="record-message" role="status">
-                  내서재에 등록한 도서가 없어요. 먼저 도서를 등록해 주세요.
+                  내 서재에 등록한 도서가 없어요. 먼저 도서를 등록해 주세요.
                 </p>
               )}
               {savedLog && editable && (
@@ -523,7 +523,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
               ) : (
                 <div className="record-form-actions">
                   <Link className="record-button record-button-outline" to="/library/notes">
-                    내서재에서 보기
+                    내 서재에서 보기
                   </Link>
                   {isEditMode ? (
                     <Link className="record-button record-button-primary" to="/records/new">
@@ -592,7 +592,7 @@ export default function ReadingRecord({ editId }: { editId?: number }) {
 
             <section className="record-panel record-delete-panel">
               <p>
-                임시저장·저장·보완요청 상태의 기록은 내서재 수첩형에서 수정할 수 있어요. 삭제는 제출 전(임시저장) 기록만 돼요.
+                임시저장·저장·보완요청 상태의 기록은 내 서재 수첩형에서 수정할 수 있어요. 삭제는 제출 전(임시저장) 기록만 돼요.
                 심사 중이거나 승인된 기록은 바꿀 수 없어요.
               </p>
               <button
