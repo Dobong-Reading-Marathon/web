@@ -54,6 +54,14 @@ select {
   flex-direction: column;
   animation: page-enter 2000ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
+.auth-route-status {
+  display: grid;
+  min-height: 45vh;
+  place-items: center;
+  padding: 24px;
+  color: #66756d;
+  text-align: center;
+}
 .admin-main {
   animation: page-enter 2000ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }

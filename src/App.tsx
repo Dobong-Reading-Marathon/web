@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Route, Routes, useLocation, useParams } from "react-router-dom";
+import { Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import Calendar from "./pages/Calendar.tsx";
 import Rules from "./pages/Rules.tsx";
 import Join from "./pages/Join.tsx";
@@ -23,6 +23,45 @@ import AdminParticipantRecords from "./pages/AdminParticipantRecords.tsx";
 import AdminReviews from "./pages/AdminReviews.tsx";
 import AdminRounds from "./pages/AdminRounds.tsx";
 import AdminLogin from "./pages/AdminLogin.tsx";
+import RequireUser from "./components/RequireUser.tsx";
+import { AUTHENTICATION_REQUIRED_EVENT, clearAuthToken } from "./api/client";
+
+const USER_ONLY_PATHS = [
+  "/library", "/calendar", "/join", "/course-change", "/certificate",
+  "/notifications", "/records", "/register", "/search",
+];
+
+function isPathWithin(pathname: string, basePath: string) {
+  return pathname === basePath || pathname.startsWith(`${basePath}/`);
+}
+
+function AuthenticationRedirect() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const onAuthenticationRequired = (event: Event) => {
+      const detail = (event as CustomEvent<{ path: string; admin: boolean }>).detail;
+      // Public pages use this request to decide whether to show guest content.
+      if (detail.path === "/api/users/me") return;
+
+      const adminPage = pathname === "/admin" || pathname.startsWith("/admin/");
+      const userPage = USER_ONLY_PATHS.some((basePath) => isPathWithin(pathname, basePath));
+      if (detail.admin && adminPage && pathname !== "/admin/login") {
+        clearAuthToken();
+        navigate("/admin/login", { replace: true, state: { authNotice: "관리자 로그인이 필요합니다." } });
+      } else if (!detail.admin && userPage) {
+        clearAuthToken();
+        navigate("/login", { replace: true, state: { authNotice: "로그인이 필요합니다." } });
+      }
+    };
+
+    window.addEventListener(AUTHENTICATION_REQUIRED_EVENT, onAuthenticationRequired);
+    return () => window.removeEventListener(AUTHENTICATION_REQUIRED_EVENT, onAuthenticationRequired);
+  }, [navigate, pathname]);
+
+  return null;
+}
 
 
 function ScrollToTop() {
@@ -43,24 +82,25 @@ export default function App() {
   return (
     <div className="app-shell app-shell--full">
       <ScrollToTop />
+      <AuthenticationRedirect />
       <Routes>
         <Route path="/" element={<HomeEntry />} />
-        <Route path="/library" element={<Library />} />
-        <Route path="/library/notes" element={<LibraryNotes />} />
-        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/library" element={<RequireUser><Library /></RequireUser>} />
+        <Route path="/library/notes" element={<RequireUser><LibraryNotes /></RequireUser>} />
+        <Route path="/calendar" element={<RequireUser><Calendar /></RequireUser>} />
         <Route path="/rules" element={<Rules />} />
-        <Route path="/join" element={<Join />} />
-        <Route path="/course-change" element={<CourseChange />} />
-        <Route path="/certificate" element={<Certificate />} />
+        <Route path="/join" element={<RequireUser><Join /></RequireUser>} />
+        <Route path="/course-change" element={<RequireUser><CourseChange /></RequireUser>} />
+        <Route path="/certificate" element={<RequireUser><Certificate /></RequireUser>} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/records/new" element={<ReadingRecord key="new" />} />
-        <Route path="/records/:id/edit" element={<ReadingRecordEdit />} />
+        <Route path="/notifications" element={<RequireUser><Notifications /></RequireUser>} />
+        <Route path="/records/new" element={<RequireUser><ReadingRecord key="new" /></RequireUser>} />
+        <Route path="/records/:id/edit" element={<RequireUser><ReadingRecordEdit /></RequireUser>} />
 
-        <Route path="/register" element={<BookRegister />} />
-        <Route path="/search" element={<Search />} />
+        <Route path="/register" element={<RequireUser><BookRegister /></RequireUser>} />
+        <Route path="/search" element={<RequireUser><Search /></RequireUser>} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/participants" element={<AdminParticipants />} />

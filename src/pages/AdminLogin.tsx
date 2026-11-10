@@ -1,15 +1,23 @@
-import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { adminLogin } from "../api/adminAuth";
 import logo from "../assets/logo.png";
 import "./AdminLogin.css";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const state = location.state as { authNotice?: unknown } | null;
+    if (typeof state?.authNotice !== "string") return;
+    setError(state.authNotice);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setBusy(true);

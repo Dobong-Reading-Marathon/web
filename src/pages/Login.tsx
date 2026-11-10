@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PlainLayout } from "../components/UserLayout";
 import { login } from "../api/auth";
 import { storeAuthToken } from "../api/client";
@@ -7,11 +7,19 @@ import "./Login.css";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const state = location.state as { authNotice?: unknown } | null;
+    if (typeof state?.authNotice !== "string") return;
+    setMessage(state.authNotice);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -31,8 +31,9 @@ function UserHeader({ active }: { active: UserNav }) {
 
   async function handleLogout() {
     if (!window.confirm("로그아웃할까요?")) return;
-    try { await logout(); } catch { /* The local session is cleared even when the server is unreachable. */ }
+    const pendingLogout = logout();
     navigate("/", { replace: true });
+    try { await pendingLogout; } catch { /* The local session is cleared even when the server is unreachable. */ }
   }
 
   return (
