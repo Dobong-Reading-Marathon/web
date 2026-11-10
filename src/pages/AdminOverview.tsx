@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"; // 역대 대회 비교를 살리면 useMemo도 다시 가져온다
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getAdminCurrentRound, getAdminParticipants, type AdminParticipant } from "../api/admin";
 import QRCode from "qrcode";
@@ -45,12 +45,12 @@ export default function AdminOverview() {
   }, []);
 
   const rate = metrics?.participants ? metrics.completers / metrics.participants * 100 : 0;
-  // 역대 대회 비교 (개발 전): 회차별 참가자 수·완주자 수를 주는 BE API가 없어서 패널을 숨김.
-  // API가 생기면 아래 주석과 화면의 "역대 대회 비교 (개발 전)" 주석을 풀고 history를 API 값으로 채운다.
-  // const history = useMemo(() => [
-  //   { year: metrics?.roundYear ?? 2026, participants: metrics?.participants ?? 0, completers: metrics?.completers ?? 0, rate },
-  // ], [metrics, rate]);
-  // const chartMaximum = Math.max(1, ...history.map((item) => item.participants));
+  // 역대 대회 비교: 회차별 집계 API가 없어서, 이번 회차만 BE 참가자 목록으로 FE에서 임시 계산합니다 (하드코딩 없음).
+  // 회차별 참가자 수·완주자 수 API가 생기면 그 값으로 바꾸고 지난 회차도 붙입니다.
+  const history = useMemo(() => metrics
+    ? [{ year: metrics.roundYear, participants: metrics.participants, completers: metrics.completers, rate }]
+    : [], [metrics, rate]);
+  const chartMaximum = Math.max(1, ...history.map((item) => item.participants));
 
   useEffect(() => {
     let cancelled = false;
@@ -75,10 +75,8 @@ export default function AdminOverview() {
       <article><span>우수 서평 수</span><b>—</b><small>우수 서평 조회 API 없음</small></article>
     </section>
     <section className="admin-overview-lower">
-      {/* 역대 대회 비교 (개발 전):
       <article className="admin-panel admin-history-panel"><header><h2>역대 대회 비교</h2></header><div className="admin-chart-legend"><span><i /> 참가자</span><span><i /> 완주자</span></div><div className="admin-history-chart">{history.map((row) => <div className="admin-chart-column" key={row.year}><div className="admin-bars"><i style={{ height: `${Math.max(8, row.participants / chartMaximum * 92)}%` }} /><i style={{ height: `${Math.max(8, row.completers / chartMaximum * 92)}%` }} /></div><b>{row.year} 회차</b></div>)}</div><div className="admin-history-table-wrap"><table className="admin-history-table"><thead><tr><th>회차</th><th>참가자</th><th>완주자</th><th>완주율</th></tr></thead><tbody>{history.map((row) => <tr key={row.year}><th>{row.year} 회차</th><td>{number(row.participants)}명</td><td>{number(row.completers)}명</td><td>{row.rate.toFixed(1)}%</td></tr>)}</tbody></table></div></article>
-      */}
-      <article className="admin-panel admin-qr-panel"><h2>접속 QR 코드</h2><div className="admin-qr-content"><div className="admin-qr-frame">{qrSvg ? <div className="admin-qr-code" role="img" aria-label={`${PUBLIC_SITE_URL} 접속 QR 코드`} dangerouslySetInnerHTML={{ __html: qrSvg }} /> : <span className="admin-qr-loading">QR 만드는 중…</span>}</div><div className="admin-qr-copy"><p>서비스 주소로 바로 들어오는 QR 코드를 이미지로 저장하거나 안내문으로 인쇄해요.</p><b>{PUBLIC_SITE_URL}</b><div className="admin-qr-actions"><button className="admin-pill-button outline" onClick={downloadQr} disabled={!qrSvg} type="button"><Icon n="download" s={16} /> 이미지로 저장</button><button className="admin-pill-button outline" onClick={() => window.print()} type="button"><Icon n="printer" s={16} /> 안내문 인쇄</button></div></div></div><div className="admin-qr-print"><b>도봉도서관 독서마라톤에 함께해요!</b><span>QR 코드를 찍고 참가 신청하세요. · [운영 기간]</span></div></article>
+      <article className="admin-panel admin-qr-panel"><h2>접속 QR 코드</h2><div className="admin-qr-content"><div className="admin-qr-frame">{qrSvg ? <div className="admin-qr-code" role="img" aria-label={`${PUBLIC_SITE_URL} 접속 QR 코드`} dangerouslySetInnerHTML={{ __html: qrSvg }} /> : <span className="admin-qr-loading">QR 만드는 중…</span>}</div><a className="admin-qr-link" href={PUBLIC_SITE_URL} target="_blank" rel="noreferrer">{PUBLIC_SITE_URL}</a><button className="admin-pill-button outline" onClick={downloadQr} disabled={!qrSvg} type="button"><Icon n="download" s={16} /> QR 이미지 저장</button></div></article>
     </section>
   </div></AdminLayout>;
 }
