@@ -135,7 +135,9 @@ select {
 .header-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
+  margin-left: auto;
 }
 .icon-button {
   position: relative;
@@ -188,10 +190,26 @@ select {
   background: #e7f5ed;
   color: #176443;
 }
-.guest-admin-login-link {
-  margin-left: 12px;
-  color: #2f7d5f !important;
-  font-weight: 700 !important;
+.user-login-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #2f7d5f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.site-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.site-footer a.footer-admin-login-link {
+  color: #66756d;
+  font-weight: 500;
 }
 .avatar {
   width: 36px;
