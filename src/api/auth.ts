@@ -118,10 +118,9 @@ export async function getPrivacyConsent(signal?: AbortSignal): Promise<PrivacyCo
 }
 
 export async function logout() {
-  try {
-    const response = await apiFetch("/api/auth/logout", { method: "POST" });
-    if (!response.ok) throw await readApiError(response);
-  } finally {
-    clearAuthToken();
-  }
+  // apiFetch captures the current token in the request headers synchronously.
+  const request = apiFetch("/api/auth/logout", { method: "POST" });
+  clearAuthToken();
+  const response = await request;
+  if (!response.ok) throw await readApiError(response);
 }
