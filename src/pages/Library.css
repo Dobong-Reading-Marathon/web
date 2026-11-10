@@ -152,20 +152,3 @@
   .notebook-title{font-size:20px}
   .notebook-pager button{padding:0 10px}
 }
-
-/* 기록장 인쇄: 수첩 장만 한 장씩 인쇄합니다. */
-@media print{
-  body:has(.notes-root) .site-header,
-  body:has(.notes-root) .site-footer,
-  body:has(.notes-root) .mobile-tab-bar,
-  .notes-root .library-banner,
-  .notes-root .notes-nav,
-  .notes-root .notebook-pager,
-  .notes-root .notebook-actions{display:none!important}
-  .notes-root{padding:0!important}
-  .notes-layout{display:block}
-  .notebook{min-height:0;padding:0;border:0;background:none;box-shadow:none}
-  .notebook::before,.notebook::after{display:none}
-  .notebook-page{animation:none!important;padding:8mm 0;break-after:page}
-  .notebook-page:last-of-type{break-after:auto}
-}

@@ -73,7 +73,6 @@ export default function LibraryNotes() {
   const [searchParams] = useSearchParams();
   const { records, loading, error, removeRecord } = useLibraryRecords();
   const [flip, setFlip] = useState<FlipDirection>(null);
-  const [printing, setPrinting] = useState(false);
   const [actionError, setActionError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -116,13 +115,6 @@ export default function LibraryNotes() {
     }
   }, [current?.readingLogId, records.length]);
 
-  // 모든 장을 그린 뒤 인쇄 창을 엽니다.
-  useEffect(() => {
-    if (!printing) return;
-    const timer = window.setTimeout(() => { window.print(); setPrinting(false); }, 50);
-    return () => window.clearTimeout(timer);
-  }, [printing]);
-
   function onTouchEnd(event: TouchEvent) {
     const start = touchStartX.current;
     touchStartX.current = null;
@@ -153,15 +145,8 @@ export default function LibraryNotes() {
 
   return (
     <UserLayout active="lib">
-      <section className="content-section is-top notes-root">
-        <LibraryHeader
-          active="notes"
-          actions={records.length > 0 && (
-            <button type="button" className="button" onClick={() => setPrinting(true)} disabled={printing}>
-              <Icon n="printer" s={16} sw={1.8} /> {printing ? "인쇄 준비 중…" : "기록장 인쇄 · PDF"}
-            </button>
-          )}
-        />
+      <section className="content-section is-top">
+        <LibraryHeader active="notes" />
         {(error || actionError) && <div className="notice notice--danger" role="alert">{error || actionError}</div>}
 
         {loading ? (
@@ -173,21 +158,15 @@ export default function LibraryNotes() {
         ) : (
           <div className="notes-layout">
             <div className="notebook" onTouchStart={(event) => { touchStartX.current = event.touches[0].clientX; }} onTouchEnd={onTouchEnd}>
-              {printing ? (
-                records.map((record, index) => (
-                  <NotebookPage key={record.readingLogId} record={record} pageNo={index + 1} pageCount={records.length} flip={null} deleting={false} onDelete={() => undefined} />
-                ))
-              ) : (
-                <NotebookPage
-                  key={current.readingLogId}
-                  record={current}
-                  pageNo={pageIndex + 1}
-                  pageCount={records.length}
-                  flip={flip}
-                  deleting={deleting}
-                  onDelete={() => void handleDelete(current)}
-                />
-              )}
+              <NotebookPage
+                key={current.readingLogId}
+                record={current}
+                pageNo={pageIndex + 1}
+                pageCount={records.length}
+                flip={flip}
+                deleting={deleting}
+                onDelete={() => void handleDelete(current)}
+              />
               <nav className="notebook-pager" aria-label="수첩 넘기기">
                 <button type="button" onClick={() => goTo(pageIndex - 1)} disabled={pageIndex <= 0}><Icon n="chl" s={18} /> 이전 장</button>
                 <span>{pageIndex + 1} / {records.length}</span>

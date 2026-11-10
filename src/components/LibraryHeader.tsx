@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Icon, { type IconName } from "./Icon";
 import Tower from "./Tower";
@@ -18,7 +17,7 @@ const DESCRIPTIONS: Record<LibraryView, string> = {
 };
 
 /** 내서재 세 화면(카드형, 수첩형, 책별로 모아보기)의 공통 상단 */
-export default function LibraryHeader({ active, actions }: { active: LibraryView; actions?: ReactNode }) {
+export default function LibraryHeader({ active }: { active: LibraryView }) {
   return (
     <div className="page-banner library-banner">
       <Tower w={380} />
@@ -37,7 +36,6 @@ export default function LibraryHeader({ active, actions }: { active: LibraryView
             ))}
           </nav>
           <div className="action-group">
-            {actions}
             <Link to="/register" className="button button--primary">
               <Icon n="plus" s={16} sw={1.8} />
               도서 등록
