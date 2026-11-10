@@ -8,7 +8,7 @@ import { deleteReadingLog } from "../api/readingLogs";
 import {
   EDIT_LABELS, READING_STATUS_ORDER, isDeletableRecord, isEditableRecord, readingStatusChip, readingStatusLabel,
 } from "../constants/readingStatus";
-import { reviewLength, useLibraryRecords, useRecordDetails, type LibraryRecord } from "../hooks/useLibraryRecords";
+import { bookByline, useLibraryRecords, type LibraryRecord } from "../hooks/useLibraryRecords";
 import "./Library.css";
 
 const REVIEW_TARGET = 500;
@@ -19,32 +19,30 @@ export default function Library() {
   const navigationNotice = (location.state as { notice?: string } | null)?.notice;
   const [searchParams, setSearchParams] = useSearchParams();
   const bookFilter = Number(searchParams.get("book")) || null;
-  const { records, books, loading, error, removeRecord } = useLibraryRecords();
+  const { records, loading, error, removeRecord } = useLibraryRecords();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [actionError, setActionError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const newestFirst = useMemo(() => [...records].reverse(), [records]);
-  const { details, failed } = useRecordDetails(useMemo(() => newestFirst.map((record) => record.id), [newestFirst]));
-  const filterBook = bookFilter ? books.find((book) => book.enrollmentBookId === bookFilter) : undefined;
+  const filterBookTitle = bookFilter ? records.find((record) => record.enrollmentBookId === bookFilter)?.bookTitle : undefined;
 
   const visible = newestFirst.filter((record) => {
     if (bookFilter && record.enrollmentBookId !== bookFilter) return false;
     if (statusFilter && record.status !== statusFilter) return false;
     const keyword = query.trim().toLowerCase();
     if (!keyword) return true;
-    const detail = details.get(record.id);
-    return [record.title, record.author, detail?.quote, detail?.review].some((text) => text?.toLowerCase().includes(keyword));
+    return [record.bookTitle, record.author, record.publisher, record.quote, record.review].some((text) => text?.toLowerCase().includes(keyword));
   });
 
   async function handleDelete(record: LibraryRecord) {
-    if (!window.confirm(`${record.readDate} ‘${record.title}’ 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) return;
-    setDeletingId(record.id);
+    if (!window.confirm(`${record.readDate} ‘${record.bookTitle}’ 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) return;
+    setDeletingId(record.readingLogId);
     setActionError("");
     try {
-      await deleteReadingLog(record.id);
-      removeRecord(record.id);
+      await deleteReadingLog(record.readingLogId);
+      removeRecord(record.readingLogId);
     } catch (reason) {
       setActionError(reason instanceof Error ? reason.message : "기록을 삭제하지 못했어요. 다시 시도해 주세요.");
     } finally {
@@ -62,7 +60,7 @@ export default function Library() {
           <input
             className="text-input"
             type="search"
-            placeholder="도서명, 저자, 글귀, 서평 검색"
+            placeholder="도서명, 저자, 출판사, 글귀, 서평 검색"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             aria-label="독서기록 검색"
@@ -81,12 +79,11 @@ export default function Library() {
 
         {bookFilter && (
           <p className="library-book-filter">
-            <b>{filterBook?.title ?? "선택한 책"}</b> 기록만 보고 있어요.
+            <b>{filterBookTitle ?? "선택한 책"}</b> 기록만 보고 있어요.
             <button type="button" onClick={() => setSearchParams({})}><Icon n="x" s={14} /> 전체 기록 보기</button>
           </p>
         )}
         {(error || actionError) && <div className="notice notice--danger" role="alert">{error || actionError}</div>}
-        {failed && <p className="text-small text-muted">일부 기록의 서평을 불러오지 못했어요. 새로고침해 보세요.</p>}
 
         {loading ? (
           <p className="text-muted">독서기록을 불러오는 중이에요.</p>
@@ -97,44 +94,44 @@ export default function Library() {
         ) : (
           <div className="record-card-grid">
             {visible.map((record) => {
-              const detail = details.get(record.id);
-              const length = reviewLength(detail?.review);
               const editable = isEditableRecord(record.status);
               const deletable = isDeletableRecord(record.status);
+              const met = record.reviewLength >= REVIEW_TARGET;
               return (
-                <article key={record.id} className="record-card">
+                <article key={record.readingLogId} className="record-card">
                   <header className="record-card-top">
-                    <span className="record-book-no">#{record.bookNo}권</span>
-                    <Chip k="line">{record.libraryOwned ? "소장도서" : "소장 아님"}</Chip>
-                    <Chip k={readingStatusChip(record.status)}>{readingStatusLabel(record.status)}</Chip>
                     <time className="record-card-date" dateTime={record.readDate}><Icon n="cal" s={13} /> {record.readDate}</time>
+                    <span className="record-card-chips">
+                      <Chip k={readingStatusChip(record.status)}>{readingStatusLabel(record.status)}</Chip>
+                      <Chip k="line">{record.libraryOwned ? "소장도서" : "소장 아님"}</Chip>
+                    </span>
                   </header>
                   <div>
-                    <h3 className="record-card-title">{record.title}</h3>
+                    <h3 className="record-card-title">{record.bookTitle}</h3>
                     <p className="record-card-meta">
-                      {record.author && `${record.author} · `}{record.startPage}–{record.endPage}쪽{record.totalPages > 0 && ` / 전체 ${record.totalPages}쪽`}
+                      {[bookByline(record), `${record.startPage}–${record.endPage}쪽`].filter(Boolean).join(" · ")}
                     </p>
                   </div>
-                  {detail?.quote?.trim() && <blockquote className="record-card-quote">“{detail.quote.trim()}”</blockquote>}
-                  {detail?.librarianComment && record.status === "REVISION_REQUESTED" && (
-                    <p className="record-card-comment"><b>사서 코멘트</b> {detail.librarianComment}</p>
+                  {record.quote?.trim() && <blockquote className="record-card-quote">“{record.quote.trim()}”</blockquote>}
+                  {record.librarianComment && record.status === "REVISION_REQUESTED" && (
+                    <p className="record-card-comment"><b>사서 코멘트</b> {record.librarianComment}</p>
                   )}
-                  <p className={`record-card-review${detail?.review?.trim() ? "" : " is-empty"}`}>
-                    {detail ? detail.review?.trim() || "아직 서평을 쓰지 않았어요." : "서평을 불러오는 중이에요."}
+                  <p className={`record-card-review${record.review?.trim() ? "" : " is-empty"}`}>
+                    {record.review?.trim() || "아직 서평을 쓰지 않았어요."}
                   </p>
                   <footer className="record-card-footer">
-                    <span className={`record-card-length${length >= REVIEW_TARGET ? " is-met" : ""}`}>
-                      {length >= REVIEW_TARGET && <Icon n="check" s={15} />}
-                      <b>{detail ? `${length}자` : "—"}</b>
-                      <small>{length >= REVIEW_TARGET ? "(500자 충족)" : "(권장 500자)"}</small>
+                    <span className={`record-card-length${met ? " is-met" : ""}`}>
+                      {met && <Icon n="check" s={15} />}
+                      <b>{record.reviewLength}자</b>
+                      <small>{met ? "(500자 충족)" : "(권장 500자)"}</small>
                     </span>
                     <span className="record-card-actions">
-                      <Link to={`/library/notes?log=${record.id}`} aria-label={`${record.title} 기록 수첩에서 보기`} title="수첩에서 보기"><Icon n="book" s={17} /></Link>
+                      <Link to={`/library/notes?log=${record.readingLogId}`} aria-label={`${record.bookTitle} 기록 수첩에서 보기`} title="수첩에서 보기"><Icon n="book" s={17} /></Link>
                       {editable && (
-                        <Link to={`/records/${record.id}/edit`} aria-label={`${record.title} 기록 ${EDIT_LABELS[record.status]}`} title={EDIT_LABELS[record.status]}><Icon n="pen" s={17} /></Link>
+                        <Link to={`/records/${record.readingLogId}/edit`} aria-label={`${record.bookTitle} 기록 ${EDIT_LABELS[record.status]}`} title={EDIT_LABELS[record.status]}><Icon n="pen" s={17} /></Link>
                       )}
                       {deletable && (
-                        <button type="button" onClick={() => void handleDelete(record)} disabled={deletingId === record.id} aria-label={`${record.title} 기록 삭제`} title="삭제"><Icon n="trash" s={17} /></button>
+                        <button type="button" onClick={() => void handleDelete(record)} disabled={deletingId === record.readingLogId} aria-label={`${record.bookTitle} 기록 삭제`} title="삭제"><Icon n="trash" s={17} /></button>
                       )}
                     </span>
                   </footer>

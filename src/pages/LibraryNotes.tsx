@@ -1,22 +1,20 @@
-import { useEffect, useMemo, useRef, useState, type TouchEvent } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Chip from "../components/Chip";
 import Icon from "../components/Icon";
 import LibraryHeader from "../components/LibraryHeader";
 import UserLayout from "../components/UserLayout";
 import { deleteReadingLog } from "../api/readingLogs";
-import type { ReadingLogDetail } from "../api/calendar";
 import {
   EDIT_LABELS, READING_STATUS_ORDER, formatMonthDay, isDeletableRecord, isEditableRecord, readingStatusChip, readingStatusLabel,
 } from "../constants/readingStatus";
-import { reviewLength, useLibraryRecords, useRecordDetails, type LibraryRecord } from "../hooks/useLibraryRecords";
+import { bookByline, useLibraryRecords, type LibraryRecord } from "../hooks/useLibraryRecords";
 import "./Library.css";
 
 type FlipDirection = "next" | "prev" | null;
 
-function NotebookPage({ record, detail, pageNo, pageCount, flip, deleting, onDelete }: {
+function NotebookPage({ record, pageNo, pageCount, flip, deleting, onDelete }: {
   record: LibraryRecord;
-  detail: ReadingLogDetail | undefined;
   pageNo: number;
   pageCount: number;
   flip: FlipDirection;
@@ -25,36 +23,33 @@ function NotebookPage({ record, detail, pageNo, pageCount, flip, deleting, onDel
 }) {
   const editable = isEditableRecord(record.status);
   const deletable = isDeletableRecord(record.status);
-  const length = reviewLength(detail?.review);
+  const byline = bookByline(record);
   return (
     <article className={`notebook-page${flip ? ` flip-${flip}` : ""}`} aria-label={`${pageNo}쪽 / 전체 ${pageCount}쪽`}>
       <header className="notebook-page-head">
-        <span className="record-book-no">제 {record.bookNo} 권</span>
         <time dateTime={record.readDate}>{record.readDate}</time>
         <span className="notebook-divider" aria-hidden="true">|</span>
         <span>{record.startPage}–{record.endPage}쪽</span>
         <Chip k={readingStatusChip(record.status)}>{readingStatusLabel(record.status)}</Chip>
         <span className="notebook-page-no">{pageNo} / {pageCount}</span>
       </header>
-      <h2 className="notebook-title">『{record.title}』{record.author && <small> - {record.author} 저</small>}</h2>
+      <h2 className="notebook-title">『{record.bookTitle}』{byline && <small> - {byline}</small>}</h2>
 
-      {detail?.librarianComment && (
-        <p className="notebook-comment"><b>사서 코멘트{detail.reviewedAt ? ` · ${formatMonthDay(detail.reviewedAt)}` : ""}</b>{detail.librarianComment}</p>
+      {record.librarianComment && (
+        <p className="notebook-comment"><b>사서 코멘트{record.reviewedAt ? ` · ${formatMonthDay(record.reviewedAt)}` : ""}</b>{record.librarianComment}</p>
       )}
-      {detail?.quote?.trim() && (
-        <blockquote className="notebook-quote"><b>[마음에 드는 글귀]</b> “{detail.quote.trim()}”</blockquote>
+      {record.quote?.trim() && (
+        <blockquote className="notebook-quote"><b>[마음에 드는 글귀]</b> “{record.quote.trim()}”</blockquote>
       )}
       <section className="notebook-review">
-        <h3>[독서 소감 / 서평] {detail && <span>({length}자)</span>}</h3>
-        <p className={detail?.review?.trim() ? "" : "is-empty"}>
-          {detail ? detail.review?.trim() || "아직 서평을 쓰지 않았어요." : "기록을 불러오는 중이에요."}
-        </p>
+        <h3>[독서 소감 / 서평] <span>({record.reviewLength}자)</span></h3>
+        <p className={record.review?.trim() ? "" : "is-empty"}>{record.review?.trim() || "아직 서평을 쓰지 않았어요."}</p>
       </section>
 
       <footer className="notebook-actions">
         {editable ? (
           <>
-            <Link to={`/records/${record.id}/edit`} className="button button--primary is-small"><Icon n="pen" s={15} /> {EDIT_LABELS[record.status]}</Link>
+            <Link to={`/records/${record.readingLogId}/edit`} className="button button--primary is-small"><Icon n="pen" s={15} /> {EDIT_LABELS[record.status]}</Link>
             {deletable && (
               <button type="button" className="button button--danger-outline is-small" onClick={onDelete} disabled={deleting}>
                 <Icon n="trash" s={15} /> {deleting ? "삭제 중" : "삭제"}
@@ -87,23 +82,15 @@ export default function LibraryNotes() {
   // 카드형에서 넘어오면 ?log=기록ID 장을 먼저 엽니다. 장을 넘길 때는 주소를 바꾸지 않습니다.
   // (주소가 바뀌면 RequireUser가 로그인 확인을 다시 하면서 화면 전체를 새로 그리기 때문입니다.)
   const [currentId, setCurrentId] = useState<number | null>(() => Number(searchParams.get("log")) || null);
-  const requestedIndex = records.findIndex((record) => record.id === currentId);
+  const requestedIndex = records.findIndex((record) => record.readingLogId === currentId);
   const pageIndex = requestedIndex >= 0 ? requestedIndex : records.length - 1;
   const current = records[pageIndex];
-
-  // 지금 장과 앞뒤 장의 상세를 미리 불러옵니다. 인쇄할 때는 모든 장을 불러옵니다.
-  const detailIds = useMemo(() => printing
-    ? records.map((record) => record.id)
-    : [records[pageIndex - 1], records[pageIndex], records[pageIndex + 1]].filter(Boolean).map((record) => record.id),
-  [printing, records, pageIndex]);
-  const { details, failed } = useRecordDetails(detailIds);
-  const allDetailsLoaded = records.every((record) => details.has(record.id));
 
   function goTo(index: number) {
     const target = records[index];
     if (!target || index === pageIndex) return;
     setFlip(index > pageIndex ? "next" : "prev");
-    setCurrentId(target.id);
+    setCurrentId(target.readingLogId);
   }
 
   // 키보드 ← → 로 장을 넘깁니다 (입력칸에 있을 때는 제외).
@@ -127,14 +114,14 @@ export default function LibraryNotes() {
     if (top < list.scrollTop || top + item.offsetHeight > list.scrollTop + list.clientHeight) {
       list.scrollTop = top - list.clientHeight / 2 + item.offsetHeight / 2;
     }
-  }, [current?.id, records.length]);
+  }, [current?.readingLogId, records.length]);
 
-  // 모든 장의 상세가 오면 인쇄 창을 엽니다.
+  // 모든 장을 그린 뒤 인쇄 창을 엽니다.
   useEffect(() => {
-    if (!printing || !allDetailsLoaded) return;
+    if (!printing) return;
     const timer = window.setTimeout(() => { window.print(); setPrinting(false); }, 50);
     return () => window.clearTimeout(timer);
-  }, [printing, allDetailsLoaded]);
+  }, [printing]);
 
   function onTouchEnd(event: TouchEvent) {
     const start = touchStartX.current;
@@ -146,15 +133,15 @@ export default function LibraryNotes() {
   }
 
   async function handleDelete(record: LibraryRecord) {
-    if (!window.confirm(`${record.readDate} ‘${record.title}’ 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) return;
+    if (!window.confirm(`${record.readDate} ‘${record.bookTitle}’ 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) return;
     setDeleting(true);
     setActionError("");
     try {
-      await deleteReadingLog(record.id);
+      await deleteReadingLog(record.readingLogId);
       const next = records[pageIndex + 1] ?? records[pageIndex - 1];
-      removeRecord(record.id);
+      removeRecord(record.readingLogId);
       setFlip(null);
-      setCurrentId(next?.id ?? null);
+      setCurrentId(next?.readingLogId ?? null);
     } catch (reason) {
       setActionError(reason instanceof Error ? reason.message : "기록을 삭제하지 못했어요. 다시 시도해 주세요.");
     } finally {
@@ -176,7 +163,6 @@ export default function LibraryNotes() {
           )}
         />
         {(error || actionError) && <div className="notice notice--danger" role="alert">{error || actionError}</div>}
-        {failed && <p className="text-small text-muted">일부 기록을 불러오지 못했어요. 새로고침해 보세요.</p>}
 
         {loading ? (
           <div className="content-card text-muted">독서기록을 불러오는 중이에요.</div>
@@ -189,13 +175,12 @@ export default function LibraryNotes() {
             <div className="notebook" onTouchStart={(event) => { touchStartX.current = event.touches[0].clientX; }} onTouchEnd={onTouchEnd}>
               {printing ? (
                 records.map((record, index) => (
-                  <NotebookPage key={record.id} record={record} detail={details.get(record.id)} pageNo={index + 1} pageCount={records.length} flip={null} deleting={false} onDelete={() => undefined} />
+                  <NotebookPage key={record.readingLogId} record={record} pageNo={index + 1} pageCount={records.length} flip={null} deleting={false} onDelete={() => undefined} />
                 ))
               ) : (
                 <NotebookPage
-                  key={current.id}
+                  key={current.readingLogId}
                   record={current}
-                  detail={details.get(current.id)}
                   pageNo={pageIndex + 1}
                   pageCount={records.length}
                   flip={flip}
@@ -222,12 +207,12 @@ export default function LibraryNotes() {
                   const index = records.indexOf(record);
                   const isCurrent = index === pageIndex;
                   return (
-                    <li key={record.id}>
+                    <li key={record.readingLogId}>
                       <button type="button" className={isCurrent ? "is-current" : ""} aria-current={isCurrent ? "page" : undefined} onClick={() => goTo(index)}>
                         <i className={`status-dot status-dot--${record.status}`} title={readingStatusLabel(record.status)} />
                         <span className="sr-only">{readingStatusLabel(record.status)},</span>
                         <b>{formatMonthDay(record.readDate)}</b>
-                        <span className="notes-nav-title">{record.title} · {record.endPage}쪽</span>
+                        <span className="notes-nav-title">{record.bookTitle} · {record.endPage}쪽</span>
                       </button>
                     </li>
                   );
