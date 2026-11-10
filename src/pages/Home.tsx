@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { getCurrentUser } from "../api/users";
 import { getBooks, type LibraryBook } from "../api/books";
@@ -31,6 +31,22 @@ const unwrapList = <T,>(body: unknown, keys: string[]): T[] => {
   }
   return [];
 };
+
+/** 홈 내 서재 카드의 표지. 이미지가 없거나 불러오지 못하면 파스텔 + 글자 한 자 */
+function HomeBookCover({ book, bg, fg, children }: { book: LibraryBook; bg: string; fg: string; children: ReactNode }) {
+  // 로딩에 실패한 주소를 기억한다. 주소가 바뀌면 다시 시도한다
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = failedSrc !== null && failedSrc === book.coverUrl;
+  const showImage = Boolean(book.coverUrl) && !failed;
+  return (
+    <div className="home-book-cover" style={{ background: bg, color: fg }}>
+      {showImage
+        ? <img src={book.coverUrl ?? undefined} alt="" loading="lazy" onError={() => setFailedSrc(book.coverUrl ?? null)} />
+        : <strong>{book.title.slice(0, 1)}</strong>}
+      {children}
+    </div>
+  );
+}
 
 export default function Home() {
   const [name, setName] = useState("독서인");
@@ -102,7 +118,7 @@ export default function Home() {
       <div className="home-metrics"><div><b>{progress ? progress.readKm.toFixed(2) : "—"}<small>km</small></b><span>달린 거리 · 1,000쪽 = 1km</span></div><div><b>{progress ? number(progress.pages.current) : "—"}</b><span>쪽수 · 목표 {progress ? `${number(progress.pages.target)}쪽 (${progress.pages.percent}%)` : "불러오는 중"}</span></div><div><b>{progress ? number(progress.completedBooks) : "—"}<small>권</small></b><span>완독 권수 · 내 서재 기준</span></div><div><b>{progress ? number(progress.reviews.current) : "—"}<small>편</small></b><span>서평 · 목표 {progress ? `${number(progress.reviews.target)}편 (${progress.reviews.percent}%)` : "불러오는 중"}</span></div></div>
     </section>
 
-    <section className="home-library"><div className="home-section-intro"><h2>내 서재</h2><p>등록한 도서와 독서기록을 상태별로 모아 볼 수 있어요.</p><Link to="/library" className="home-button dark">내서재 전체 보기</Link></div><div className="home-carousel-wrap"><div className="home-book-carousel" ref={carousel}>{books.map((book, index) => { const status = bookStatus(book.status); const colors = [["#e8ddf0", "#4a2b6b"], ["#dcebe0", "#2f7d5f"], ["#e3ecdd", "#2f5a2a"]][index % 3]; return <Link to="/library" className="home-book" key={book.enrollmentBookId}><div className="home-book-cover" style={{ background: colors[0], color: colors[1] }}><Chip k={status.chip}>{status.label}</Chip><strong>{book.title.slice(0, 1)}</strong></div><b>{book.title}</b><span>{book.author} · {status.label}</span></Link>; })}{books.length === 0 && <p className="home-empty">등록한 도서가 없어요.</p>}</div><div className="home-carousel-controls"><button type="button" aria-label="이전 도서" onClick={() => carousel.current?.scrollBy({ left: -220, behavior: "smooth" })}><Icon n="chl" s={18} sw={1.8} /></button><button type="button" aria-label="다음 도서" onClick={() => carousel.current?.scrollBy({ left: 220, behavior: "smooth" })}><Icon n="chr" s={18} sw={1.8} /></button></div></div></section>
+    <section className="home-library"><div className="home-section-intro"><h2>내 서재</h2><p>등록한 도서와 독서기록을 상태별로 모아 볼 수 있어요.</p><Link to="/library" className="home-button dark">내서재 전체 보기</Link></div><div className="home-carousel-wrap"><div className="home-book-carousel" ref={carousel}>{books.map((book, index) => { const status = bookStatus(book.status); const colors = [["#e8ddf0", "#4a2b6b"], ["#dcebe0", "#2f7d5f"], ["#e3ecdd", "#2f5a2a"]][index % 3]; return <Link to="/library" className="home-book" key={book.enrollmentBookId}><HomeBookCover book={book} bg={colors[0]} fg={colors[1]}><Chip k={status.chip}>{status.label}</Chip></HomeBookCover><b>{book.title}</b><span>{book.author} · {status.label}</span></Link>; })}{books.length === 0 && <p className="home-empty">등록한 도서가 없어요.</p>}</div><div className="home-carousel-controls"><button type="button" aria-label="이전 도서" onClick={() => carousel.current?.scrollBy({ left: -220, behavior: "smooth" })}><Icon n="chl" s={18} sw={1.8} /></button><button type="button" aria-label="다음 도서" onClick={() => carousel.current?.scrollBy({ left: 220, behavior: "smooth" })}><Icon n="chr" s={18} sw={1.8} /></button></div></div></section>
 
     <section className="home-steps"><div className="home-step-art"><Tower w={460} /><Link to="/rules" className="home-step-badge">대회 요강<br />보기</Link></div><div className="home-step-copy"><div><h2>이렇게<br />참여해요</h2><p>책을 읽고, 기록하고, 제출하는 과정을 한 곳에서 끝내요.</p></div><ul>{[
       ["camera", "도서 등록", "바코드 촬영이나 제목 검색으로 책 정보를 자동으로 채워요.", "/register"], ["pen", "독서기록 작성", "읽은 쪽과 글귀, 500자 이상 서평을 남겨요.", "/records/new"], ["send", "임시저장 · 일괄 제출", "내 서재에서 기록을 모아 관리자에게 제출해요.", "/library"], ["bell", "심사 결과 확인", "승인 · 보완요청 결과를 알림으로 받아요.", "/notifications"], ["award", "완주 인증서 · 상장", "기준을 채우면 관리자 승인 뒤 인증서를 받아요.", "/certificate"],
