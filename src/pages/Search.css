@@ -104,7 +104,7 @@
 
 /* 검색 입력 영역 */
 .search-box {
-  margin-top: 40px;
+  margin-top: 24px;
   padding: 26px;
   border-radius: 22px;
   background: var(--search-mint);

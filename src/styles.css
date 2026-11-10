@@ -1134,6 +1134,10 @@ body {
   gap: 72px;
   padding-block: 48px 80px;
 }
+/* 상단 이미지 배너 아래 여백: 다른 항목 사이(72px)보다 좁게 32px */
+.content-section > .page-banner {
+  margin-bottom: -40px;
+}
 .site-footer {
   padding-inline: max(40px, calc((100% - 1200px) / 2));
 }
@@ -1936,6 +1940,10 @@ body {
   }
 }
 @container (max-width:800px) {
+  /* 좁은 화면: 항목 사이 48px, 배너 아래만 24px */
+  .content-section > .page-banner {
+    margin-bottom: -24px;
+  }
   .mobile-tab-bar {
     position: sticky;
     bottom: 0;

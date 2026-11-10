@@ -14,6 +14,9 @@
 
 /* 카드형 */
 .library-toolbar{display:flex;flex-direction:column;gap:14px}
+/* 검색·필터 아래 여백: 본문 항목 간격(72px, 좁은 화면 48px)보다 좁게 24px */
+.library-toolbar{margin-bottom:-48px}
+@container (max-width:800px){.library-toolbar{margin-bottom:-24px}}
 .library-book-filter{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:12px 16px;border-radius:12px;background:#e7f2ec;color:#2b3e37;font-size:14px}
 .library-book-filter button{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid #bdd3c6;border-radius:999px;background:#fff;color:#2f7d5f;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .record-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
