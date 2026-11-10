@@ -12,6 +12,7 @@ import Icon from "../components/Icon";
 import type { IconName } from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
+import useScrollReveal from "../hooks/useScrollReveal";
 import "./home.css";
 
 type RecentLog = { id: number; readingLogId?: number; bookTitle: string; author?: string; startPage?: number; endPage?: number; readDate?: string; status: string };
@@ -57,6 +58,7 @@ export default function Home() {
   const [calendar, setCalendar] = useState<ReadingCalendar | null>(null);
   const [loadError, setLoadError] = useState("");
   const carousel = useRef<HTMLDivElement>(null);
+  const revealRoot = useScrollReveal<HTMLElement>();
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
@@ -105,27 +107,59 @@ export default function Home() {
   const unread = notices.filter((notice) => !(notice.read ?? notice.isRead ?? true)).length;
   const bookStatus = (status: LibraryBook["status"]) => statusInfo(status === "NO_RECORD" ? "DRAFT" : status);
 
-  return <UserLayout active="home"><main className="home-page">
+  return <UserLayout active="home"><main className="home-page" ref={revealRoot}>
     {loadError && <p className="home-error" role="alert">{loadError}</p>}
-    <section className="home-hero"><Tower w={440} /><div className="home-hero-copy">
+    <section className="home-hero" data-scroll-reveal><Tower w={440} /><div className="home-hero-copy">
       <span className="home-tag">{progress?.course ? formatCourseName(progress.course) : "독서마라톤"}{progress?.course?.distanceKm != null ? ` · ${progress.course.distanceKm}km` : ""}</span>
       <h1>{name}님,<br />오늘도 한 쪽부터</h1>
       <p>{progress ? `결승까지 ${Math.max(0, targetKm - progress.readKm).toFixed(2)}km 남았어요. 승인된 기록만 거리에 반영돼요.` : "오늘 읽은 한 쪽이 완주의 기록이 돼요."}</p>
       <div className="home-actions"><Link to="/records/new" className="home-button light">독서기록 쓰기</Link><Link to="/register" className="home-button outline">도서 등록</Link></div>
     </div></section>
 
-    <section className="home-overview"><div className="home-section-intro"><h2>내 기록<br />한눈에</h2><p>{progress ? `${progress.course.name} 완주까지, 세 가지 기준을 모두 채우면 자동으로 완주 승인 대기가 돼요.` : "참가 신청 후 독서 기록 현황을 확인할 수 있어요."}</p>{progress && <><div className="home-progress-track"><i style={{ width: `${kmPercent}%` }} /><b style={{ left: `${kmPercent}%` }} /></div><div className="home-track-label"><span>0km</span><span>{Math.max(0, targetKm - progress.readKm).toFixed(2)}km 결승</span></div><Link to="/course-change" className="home-text-link">코스 변경</Link></>}</div>
+    <section className="home-overview" data-scroll-reveal><div className="home-section-intro"><h2>내 기록<br />한눈에</h2><p>{progress ? `${progress.course.name} 완주까지, 세 가지 기준을 모두 채우면 자동으로 완주 승인 대기가 돼요.` : "참가 신청 후 독서 기록 현황을 확인할 수 있어요."}</p>{progress && <><div className="home-progress-track"><i style={{ width: `${kmPercent}%` }} /><b style={{ left: `${kmPercent}%` }} /></div><div className="home-track-label"><span>0km</span><span>{Math.max(0, targetKm - progress.readKm).toFixed(2)}km 결승</span></div><Link to="/course-change" className="home-text-link">코스 변경</Link></>}</div>
       <div className="home-metrics"><div><b>{progress ? progress.readKm.toFixed(2) : "—"}<small>km</small></b><span>달린 거리 · 1,000쪽 = 1km</span></div><div><b>{progress ? number(progress.pages.current) : "—"}</b><span>쪽수 · 목표 {progress ? `${number(progress.pages.target)}쪽 (${progress.pages.percent}%)` : "불러오는 중"}</span></div><div><b>{progress ? number(progress.completedBooks) : "—"}<small>권</small></b><span>완독 권수 · 내 서재 기준</span></div><div><b>{progress ? number(progress.reviews.current) : "—"}<small>편</small></b><span>서평 · 목표 {progress ? `${number(progress.reviews.target)}편 (${progress.reviews.percent}%)` : "불러오는 중"}</span></div></div>
     </section>
 
-    <section className="home-library"><div className="home-section-intro"><h2>내 서재</h2><p>등록한 도서와 독서기록을 상태별로 모아 볼 수 있어요.</p><Link to="/library" className="home-button dark">내서재 전체 보기</Link></div><div className="home-carousel-wrap"><div className="home-book-carousel" ref={carousel}>{books.map((book, index) => { const status = bookStatus(book.status); const colors = [["#e8ddf0", "#4a2b6b"], ["#dcebe0", "#2f7d5f"], ["#e3ecdd", "#2f5a2a"]][index % 3]; return <Link to="/library" className="home-book" key={book.enrollmentBookId}><HomeBookCover book={book} bg={colors[0]} fg={colors[1]}><Chip k={status.chip}>{status.label}</Chip></HomeBookCover><b>{book.title}</b><span>{book.author} · {status.label}</span></Link>; })}{books.length === 0 && <p className="home-empty">등록한 도서가 없어요.</p>}</div><div className="home-carousel-controls"><button type="button" aria-label="이전 도서" onClick={() => carousel.current?.scrollBy({ left: -220, behavior: "smooth" })}><Icon n="chl" s={18} sw={1.8} /></button><button type="button" aria-label="다음 도서" onClick={() => carousel.current?.scrollBy({ left: 220, behavior: "smooth" })}><Icon n="chr" s={18} sw={1.8} /></button></div></div></section>
+<section className="home-library" data-scroll-reveal>
+  <div className="home-section-intro">
+    <h2>내 서재</h2>
+    <p>등록한 도서와 독서기록을 상태별로 모아 볼 수 있어요.</p>
+    <Link to="/library" className="home-button dark">내서재 전체 보기</Link>
+  </div>
+  <div className="home-carousel-wrap">
+    <div className="home-book-carousel" ref={carousel}>
+      {books.map((book, index) => {
+        const status = bookStatus(book.status);
+        const colors = [["#e8ddf0", "#4a2b6b"], ["#dcebe0", "#2f7d5f"], ["#e3ecdd", "#2f5a2a"]][index % 3];
+        return (
+          <Link to="/library" className="home-book" key={book.enrollmentBookId}>
+            <HomeBookCover book={book} bg={colors[0]} fg={colors[1]}>
+              <Chip k={status.chip}>{status.label}</Chip>
+            </HomeBookCover>
+            <b>{book.title}</b>
+            <span>{book.author} · {status.label}</span>
+          </Link>
+        );
+      })}
+      {books.length === 0 && <p className="home-empty">등록한 도서가 없어요.</p>}
+    </div>
+    <div className="home-carousel-controls">
+      <button type="button" aria-label="이전 도서" onClick={() => carousel.current?.scrollBy({ left: -220, behavior: "smooth" })}>
+        <Icon n="chl" s={18} sw={1.8} />
+      </button>
+      <button type="button" aria-label="다음 도서" onClick={() => carousel.current?.scrollBy({ left: 220, behavior: "smooth" })}>
+        <Icon n="chr" s={18} sw={1.8} />
+      </button>
+    </div>
+  </div>
+</section>
 
-    <section className="home-steps"><div className="home-step-art"><Tower w={460} /><Link to="/rules" className="home-step-badge">대회 요강<br />보기</Link></div><div className="home-step-copy"><div><h2>이렇게<br />참여해요</h2><p>책을 읽고, 기록하고, 제출하는 과정을 한 곳에서 끝내요.</p></div><ul>{[
+    <section className="home-steps" data-scroll-reveal><div className="home-step-art"><Tower w={460} /><Link to="/rules" className="home-step-badge">대회 요강<br />보기</Link></div><div className="home-step-copy"><div><h2>이렇게<br />참여해요</h2><p>책을 읽고, 기록하고, 제출하는 과정을 한 곳에서 끝내요.</p></div><ul>{[
       ["camera", "도서 등록", "바코드 촬영이나 제목 검색으로 책 정보를 자동으로 채워요.", "/register"], ["pen", "독서기록 작성", "읽은 쪽과 글귀, 500자 이상 서평을 남겨요.", "/records/new"], ["send", "임시저장 · 일괄 제출", "내 서재에서 기록을 모아 관리자에게 제출해요.", "/library"], ["bell", "심사 결과 확인", "승인 · 보완요청 결과를 알림으로 받아요.", "/notifications"], ["award", "완주 인증서 · 상장", "기준을 채우면 관리자 승인 뒤 인증서를 받아요.", "/certificate"],
     ].map(([icon, title, description, href]) => <li key={title}><span className="home-step-icon"><Icon n={icon as IconName} s={22} sw={1.8} /></span><div><b>{title}</b><p>{description}</p></div><Link to={href} aria-label={`${title} 페이지로 이동`}><Icon n="arrow" s={18} sw={1.8} /></Link></li>)}</ul></div></section>
 
-    <section className="home-feed"><div className="home-feed-card"><header><h2>최근 기록</h2><Link to="/library" className="home-text-link">모두 보기 →</Link></header><ul>{logs.slice(0, 4).map((log) => { const status = statusInfo(log.status); return <li key={log.readingLogId ?? log.id}><Cover ch={log.bookTitle?.slice(0, 1) ?? "책"} /><div><b>{log.bookTitle}</b><span>{log.author ? `${log.author} · ` : ""}{log.startPage != null ? `${number(log.startPage)}–${number(log.endPage ?? log.startPage)}쪽 · ` : ""}{dateLabel(log.readDate)}</span></div><Chip k={status.chip}>{status.label}</Chip><Link to="/library" className="home-text-link">보기</Link></li>; })}{logs.length === 0 && <li className="home-empty">최근 독서 기록이 없어요.</li>}</ul></div><aside className="home-feed-card notices"><header><h2>알림</h2><Chip k="fix">새 알림 {unread}</Chip></header><ul>{notices.slice(0, 3).map((notice) => <li key={notice.id}><div><b>{notice.title}</b><span>{notice.message ?? notice.description ?? dateLabel(notice.createdAt)}</span></div>{notice.status && <Chip k={statusInfo(notice.status).chip}>{statusInfo(notice.status).label}</Chip>}</li>)}{notices.length === 0 && <li className="home-empty">새 알림이 없어요.</li>}</ul><Link to="/notifications" className="home-button dark full">알림 모두 보기</Link></aside></section>
+    <section className="home-feed" data-scroll-reveal><div className="home-feed-card"><header><h2>최근 기록</h2><Link to="/library" className="home-text-link">모두 보기 →</Link></header><ul>{logs.slice(0, 4).map((log) => { const status = statusInfo(log.status); return <li key={log.readingLogId ?? log.id}><Cover ch={log.bookTitle?.slice(0, 1) ?? "책"} /><div><b>{log.bookTitle}</b><span>{log.author ? `${log.author} · ` : ""}{log.startPage != null ? `${number(log.startPage)}–${number(log.endPage ?? log.startPage)}쪽 · ` : ""}{dateLabel(log.readDate)}</span></div><Chip k={status.chip}>{status.label}</Chip><Link to="/library" className="home-text-link">보기</Link></li>; })}{logs.length === 0 && <li className="home-empty">최근 독서 기록이 없어요.</li>}</ul></div><aside className="home-feed-card notices"><header><h2>알림</h2><Chip k="fix">새 알림 {unread}</Chip></header><ul>{notices.slice(0, 3).map((notice) => <li key={notice.id}><div><b>{notice.title}</b><span>{notice.message ?? notice.description ?? dateLabel(notice.createdAt)}</span></div>{notice.status && <Chip k={statusInfo(notice.status).chip}>{statusInfo(notice.status).label}</Chip>}</li>)}{notices.length === 0 && <li className="home-empty">새 알림이 없어요.</li>}</ul><Link to="/notifications" className="home-button dark full">알림 모두 보기</Link></aside></section>
 
-    <section className="home-calendar"><div className="home-calendar-summary"><h2>{month}월,<br />읽은 날을 모았어요</h2><p>{calendar ? `${number(calendar.summary.pages)}쪽 · ${number(calendar.summary.books)}권 · 이달의 독서 기록이에요.` : "이번 달 독서 기록을 달력에서 확인해요."}</p><div><span>이번 달 독서 일수</span><b>{calendar ? `${calendar.summary.readDays}일` : "불러오는 중"}</b></div><div><span>이달의 쪽수</span><b>{calendar ? `${number(calendar.summary.pages)}쪽` : "—"}</b></div><div className="home-actions"><Link to="/calendar" className="home-button light">독서달력 보기</Link><Link to="/rules" className="home-button outline">대회 요강</Link></div></div><div className="home-calendar-grid">{["일", "월", "화", "수", "목", "금", "토"].map((day) => <b className="home-calendar-weekday" key={day}>{day}</b>)}{calendarDays}</div></section>
+    <section className="home-calendar" data-scroll-reveal><div className="home-calendar-summary"><h2>{month}월,<br />읽은 날을 모았어요</h2><p>{calendar ? `${number(calendar.summary.pages)}쪽 · ${number(calendar.summary.books)}권 · 이달의 독서 기록이에요.` : "이번 달 독서 기록을 달력에서 확인해요."}</p><div><span>이번 달 독서 일수</span><b>{calendar ? `${calendar.summary.readDays}일` : "불러오는 중"}</b></div><div><span>이달의 쪽수</span><b>{calendar ? `${number(calendar.summary.pages)}쪽` : "—"}</b></div><div className="home-actions"><Link to="/calendar" className="home-button light">독서달력 보기</Link><Link to="/rules" className="home-button outline">대회 요강</Link></div></div><div className="home-calendar-grid">{["일", "월", "화", "수", "목", "금", "토"].map((day) => <b className="home-calendar-weekday" key={day}>{day}</b>)}{calendarDays}</div></section>
   </main></UserLayout>;
 }
