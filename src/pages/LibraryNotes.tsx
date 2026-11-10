@@ -262,10 +262,12 @@ export default function LibraryNotes() {
                   <div><b>사서 코멘트{selectedDetail.reviewedAt ? ` · ${formatDate(selectedDetail.reviewedAt.slice(0, 10))}` : ""}</b><br />{selectedDetail.librarianComment}</div>
                 </div>
               )}
-              <div className="record-detail-section">
-                <b className="text-small">마음에 드는 글귀</b>
-                <p className="text-muted">{selectedDetail?.quote || "등록한 글귀가 없어요."}</p>
-              </div>
+              {selectedDetail?.quote?.trim() && (
+                <div className="record-detail-section">
+                  <b className="text-small">마음에 드는 글귀</b>
+                  <p className="text-muted">{selectedDetail.quote}</p>
+                </div>
+              )}
               <div className="record-detail-section">
                 <div className="space-between-row">
                   <b className="text-small">서평</b>
