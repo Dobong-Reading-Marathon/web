@@ -18,6 +18,7 @@ export interface LibraryBook {
   libraryOwned: boolean;
   children: boolean;
   status: LibraryBookStatus;
+  coverUrl: string | null;
 }
 
 export class BooksApiError extends Error {
@@ -76,6 +77,7 @@ export interface BookRegistrationRequest {
   registrationNo?: string;
   loanDate?: string;
   returnDate?: string;
+  coverUrl?: string | null;
 }
 
 export interface RegisteredBook {
@@ -92,6 +94,7 @@ export interface RegisteredBook {
   loanDate: string | null;
   returnDate: string | null;
   children: boolean;
+  coverUrl: string | null;
 }
 
 export interface BookSearchResult {
