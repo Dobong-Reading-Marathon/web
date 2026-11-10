@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Chip from "../components/Chip";
 import Cover from "../components/Cover";
+import { COVER_FALLBACK_CHAR } from "../constants/cover";
 import Icon from "../components/Icon";
 import Tower from "../components/Tower";
 import UserLayout from "../components/UserLayout";
@@ -142,19 +143,21 @@ export default function Library() {
               className="content-card content-card--compact book-card"
               style={{ gap: "14px", color: "#14231F" }}
             >
-              <div className="space-between-row" style={{ alignItems: "flex-start" }}>
-                <Cover ch={book.title.slice(0, 1) || "책"} />
-                <span className={`status-chip status-chip--${statusKinds[book.status]}`}>{statusLabels[book.status]}</span>
-              </div>
-              <div>
-                <h3 className="card-title">{book.title}</h3>
-                <p className="text-small text-muted">{book.author}</p>
-              </div>
-              <div className="chip-list">
-                {book.libraryOwned && <Chip k="line">소장도서</Chip>}
-                {!book.libraryOwned && <Chip k="line">소장 아님</Chip>}
-                {book.completed && <Chip k="info">완독</Chip>}
-                {book.children && <Chip k="info">아동도서</Chip>}
+              <div className="library-card-top">
+                <Cover ch={book.title.slice(0, 1) || COVER_FALLBACK_CHAR} src={book.coverUrl} className="library-card-cover" />
+                <div className="library-card-info">
+                  <span className={`status-chip status-chip--${statusKinds[book.status]} library-card-status`}>{statusLabels[book.status]}</span>
+                  <div>
+                    <h3 className="card-title">{book.title}</h3>
+                    <p className="text-small text-muted">{book.author}</p>
+                  </div>
+                  <div className="chip-list library-card-chips">
+                    {book.libraryOwned && <Chip k="line">소장도서</Chip>}
+                    {!book.libraryOwned && <Chip k="line">소장 아님</Chip>}
+                    {book.completed && <Chip k="info">완독</Chip>}
+                    {book.children && <Chip k="info">아동도서</Chip>}
+                  </div>
+                </div>
               </div>
               <div className="progress-bar">
                 <i style={{ width: `${book.totalPages > 0 ? Math.min(100, book.readPages / book.totalPages * 100) : 0}%` }}></i>
