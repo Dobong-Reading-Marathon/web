@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Icon, { type IconName } from "./Icon";
 import logo from "../assets/logo.png";
 import { getCurrentUser } from "../api/users";
@@ -72,6 +72,7 @@ function UserHeader({ active }: { active: UserNav }) {
 }
 
 export function PlainHeader() {
+  const { pathname } = useLocation();
   return (
     <header className="site-header">
       <Link className="site-brand" to="/">
@@ -80,17 +81,22 @@ export function PlainHeader() {
       <nav className="primary-navigation" aria-label="주요 메뉴">
         <span style={{ flex: 1 }} />
         <Link to="/rules">대회 요강</Link>
-        <Link to="/admin/login" className="guest-admin-login-link">관리자 로그인</Link>
       </nav>
+      <div className="header-actions">
+        {pathname !== "/login" && <Link className="user-login-button" to="/login">로그인</Link>}
+      </div>
     </header>
   );
 }
 
-export function UserFooter() {
+export function UserFooter({ showAdminLogin = false }: { showAdminLogin?: boolean }) {
   return (
     <footer className="site-footer">
       <span>도봉도서관 독서마라톤 · 문의는 도서관 담당자에게</span>
-      <Link to="/privacy-policy">개인정보 처리방침 전문 보기</Link>
+      <span className="site-footer-links">
+        <Link to="/privacy-policy">개인정보 처리방침 전문 보기</Link>
+        {showAdminLogin && <Link to="/admin/login" className="footer-admin-login-link">관리자 로그인</Link>}
+      </span>
     </footer>
   );
 }
@@ -135,7 +141,7 @@ export function PlainLayout({ children }: { children: ReactNode }) {
     <>
       <PlainHeader />
       <div className="page-content">{children}</div>
-      <UserFooter />
+      <UserFooter showAdminLogin />
       <TabBar active="" />
     </>
   );
