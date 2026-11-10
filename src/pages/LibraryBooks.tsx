@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Chip from "../components/Chip";
 import Cover from "../components/Cover";
@@ -7,7 +7,9 @@ import Icon from "../components/Icon";
 import LibraryHeader from "../components/LibraryHeader";
 import UserLayout from "../components/UserLayout";
 import { getBooks, type LibraryBook, type LibraryBookStatus } from "../api/books";
-import { formatMonthDay, readingStatusChip, readingStatusLabel } from "../constants/readingStatus";
+import {
+  EDIT_LABELS, isEditableRecord, readingStatusChip, readingStatusLabel,
+} from "../constants/readingStatus";
 import { useLibraryRecords, type LibraryRecord } from "../hooks/useLibraryRecords";
 import "./Library.css";
 
@@ -21,9 +23,67 @@ const filters: { label: string; value?: LibraryBookStatus }[] = [
   { label: "기록 전", value: "NO_RECORD" },
 ];
 
+/** 펼친 책에서 처음 보여 주는 기록 수. "전체 보기"를 누르면 모두 보여 줍니다. */
+const PREVIEW_COUNT = 5;
+
+/** 펼친 책 안의 기록 한 건. 수첩형 한 장과 같은 내용을 보여 줍니다. */
+function BookRecordEntry({ record }: { record: LibraryRecord }) {
+  return (
+    <article className="book-record">
+      <header className="book-record-head">
+        <span className="book-record-pages">{record.startPage}–{record.endPage}쪽</span>
+        <time className="book-record-date" dateTime={record.readDate}>{record.readDate}</time>
+        <span className="book-record-links">
+          <Chip k={readingStatusChip(record.status)}>{readingStatusLabel(record.status)}</Chip>
+          <Link to={`/library/notes?log=${record.readingLogId}`}><Icon n="book" s={14} /> 수첩에서 보기</Link>
+          {isEditableRecord(record.status) && (
+            <Link to={`/records/${record.readingLogId}/edit`}><Icon n="pen" s={14} /> {EDIT_LABELS[record.status]}</Link>
+          )}
+        </span>
+      </header>
+      {record.librarianComment && (
+        <p className="notebook-comment"><b>사서 코멘트</b>{record.librarianComment}</p>
+      )}
+      {record.quote?.trim() && (
+        <blockquote className="notebook-quote"><b>[마음에 드는 글귀]</b> “{record.quote.trim()}”</blockquote>
+      )}
+      {/* 서평이 있는 기록만 독서 소감 / 서평을 보여 줍니다. */}
+      {record.review?.trim() && (
+        <section className="notebook-review">
+          <h3>[독서 소감 / 서평] <span>({record.reviewLength}자)</span></h3>
+          <p>{record.review.trim()}</p>
+        </section>
+      )}
+    </article>
+  );
+}
+
+/** 책 블록 안의 책 정보: 왼쪽 표지, 오른쪽 표시·제목·저자, 아래 읽은 쪽 진행 막대 */
+function BookSummary({ book }: { book: LibraryBook }) {
+  const percent = book.totalPages > 0 ? Math.min(100, book.readPages / book.totalPages * 100) : 0;
+  return (
+    <>
+      <Cover ch={book.title.slice(0, 1) || COVER_FALLBACK_CHAR} src={book.coverUrl} className="book-tile-cover" />
+      <span className="book-tile-info">
+        <span className="chip-list book-tile-chips">
+          {book.completed && <Chip k="info">완독</Chip>}
+          <Chip k="line">{book.libraryOwned ? "소장도서" : "소장 아님"}</Chip>
+          {book.children && <Chip k="info">아동도서</Chip>}
+        </span>
+        <span className="book-tile-title">{book.title}</span>
+        <span className="book-tile-author">{book.author}</span>
+        <span className="book-tile-progress">
+          <small>{book.readPages} / {book.totalPages}쪽</small>
+          <span className="progress-bar"><i style={{ width: `${percent}%` }} /></span>
+        </span>
+      </span>
+    </>
+  );
+}
+
 /**
- * 책별로 모아보기: 등록한 책을 한 줄에 한 권씩 보여 주고, 오른쪽에 그 책의 가장 최근 기록을 보여 줍니다.
- * 줄을 누르면 그 자리에서 그 책의 기록을 모두 펼칩니다.
+ * 책별로 모아보기: 등록한 책을 블록으로 모아 보여 줍니다.
+ * 블록을 누르면 가로로 길게 펼쳐지고, 그 책의 기록을 수첩형 상세와 같은 형식으로 보여 줍니다 (처음 5건, 전체 보기로 모두).
  */
 export default function LibraryBooks() {
   const location = useLocation();
@@ -34,6 +94,10 @@ export default function LibraryBooks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [openBookId, setOpenBookId] = useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  // 펼친 책의 기록 순서. true면 최근 기록부터, false면 오래된 기록부터
+  const [newestFirst, setNewestFirst] = useState(true);
+  const openRef = useRef<HTMLLIElement>(null);
   const { records, loading: recordsLoading, error: recordsError } = useLibraryRecords();
   const selectedStatus = filters.find((filter) => filter.label === statusFilter)?.value;
 
@@ -69,6 +133,19 @@ export default function LibraryBooks() {
     };
   }, [searchQuery, selectedStatus]);
 
+  // 펼친 블록이 화면 밖이면 보이는 곳으로 스크롤합니다.
+  useEffect(() => {
+    const element = openRef.current;
+    if (!element) return;
+    const { top, bottom } = element.getBoundingClientRect();
+    if (top < 0 || bottom > window.innerHeight) element.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [openBookId]);
+
+  function toggle(bookId: number) {
+    setOpenBookId((current) => (current === bookId ? null : bookId));
+    setShowAll(false);
+  }
+
   return (
     <UserLayout active="lib">
       <section className="content-section is-top">
@@ -99,91 +176,64 @@ export default function LibraryBooks() {
         </div>
         {(error || recordsError) && <div className="notice notice--danger" role="alert">{error || recordsError}</div>}
 
-        <ul className="book-rows" aria-busy={loading}>
-          {books.map((book) => {
-            const bookRecords = recordsByBook.get(book.enrollmentBookId) ?? [];
-            const latest = bookRecords[0];
-            const open = openBookId === book.enrollmentBookId;
-            const percent = book.totalPages > 0 ? Math.min(100, book.readPages / book.totalPages * 100) : 0;
-            return (
-              <li key={book.enrollmentBookId} className={`book-row${open ? " is-open" : ""}`}>
-                <button
-                  type="button"
-                  className="book-row-main"
-                  aria-expanded={open}
-                  aria-controls={`book-records-${book.enrollmentBookId}`}
-                  onClick={() => setOpenBookId(open ? null : book.enrollmentBookId)}
-                >
-                  <Cover ch={book.title.slice(0, 1) || COVER_FALLBACK_CHAR} src={book.coverUrl} className="book-row-cover" />
-                  <span className="book-row-info">
-                    <span className="book-row-title">{book.title}</span>
-                    <span className="book-row-author">{book.author}</span>
-                    <span className="chip-list book-row-chips">
-                      <Chip k="line">{book.libraryOwned ? "소장도서" : "소장 아님"}</Chip>
-                      {book.completed && <Chip k="info">완독</Chip>}
-                      {book.children && <Chip k="info">아동도서</Chip>}
-                    </span>
-                    <span className="progress-bar book-row-progress"><i style={{ width: `${percent}%` }} /></span>
-                    <span className="book-row-pages">읽은 쪽 {book.readPages} / {book.totalPages}쪽</span>
-                  </span>
-                  <span className="book-row-latest">
-                    {latest ? (
-                      <>
-                        <span className="book-row-latest-head">
-                          <small>최근 기록</small>
-                          <Chip k={readingStatusChip(latest.status)}>{readingStatusLabel(latest.status)}</Chip>
-                        </span>
-                        <b>{formatMonthDay(latest.readDate)} · {latest.startPage}–{latest.endPage}쪽</b>
-                        <span className={`book-row-review${latest.review?.trim() ? "" : " is-empty"}`}>
-                          {latest.review?.trim() || "아직 서평을 쓰지 않았어요."}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="book-row-review is-empty">{recordsLoading ? "기록을 불러오는 중이에요." : "아직 기록이 없어요."}</span>
-                    )}
-                  </span>
-                  <span className="book-row-toggle">
-                    기록 {bookRecords.length}건
-                    <Icon n="chr" s={16} />
-                  </span>
-                </button>
+        {loading && books.length === 0 ? (
+          <p className="text-muted">내 서재를 불러오는 중이에요.</p>
+        ) : books.length === 0 ? (
+          <p className="text-muted">조건에 맞는 도서가 없어요.</p>
+        ) : (
+          <ul className="book-tiles" aria-busy={loading}>
+            {books.map((book) => {
+              const open = openBookId === book.enrollmentBookId;
+              const bookRecords = recordsByBook.get(book.enrollmentBookId) ?? [];
+              const ordered = newestFirst ? bookRecords : [...bookRecords].reverse();
+              const shown = open && !showAll ? ordered.slice(0, PREVIEW_COUNT) : ordered;
+              return (
+                <li key={book.enrollmentBookId} ref={open ? openRef : undefined} className={`book-tile${open ? " is-open" : ""}`}>
+                  <button
+                    type="button"
+                    className="book-tile-main"
+                    aria-expanded={open}
+                    aria-controls={`book-records-${book.enrollmentBookId}`}
+                    onClick={() => toggle(book.enrollmentBookId)}
+                  >
+                    <BookSummary book={book} />
+                    {open && <span className="book-tile-close"><Icon n="x" s={16} /> 접기</span>}
+                  </button>
 
-                {open && (
-                  <div className="book-row-records" id={`book-records-${book.enrollmentBookId}`}>
-                    {bookRecords.length === 0 ? (
-                      <p className="text-small text-muted">
-                        아직 이 책의 기록이 없어요. <Link to="/records/new" className="inline-link">기록 쓰기</Link>
-                      </p>
-                    ) : (
-                      <>
-                        <ol>
-                          {bookRecords.map((record) => (
-                            <li key={record.readingLogId}>
-                              <Link to={`/library/notes?log=${record.readingLogId}`}>
-                                <i className={`status-dot status-dot--${record.status}`} aria-hidden="true" />
-                                <b>{formatMonthDay(record.readDate)}</b>
-                                <span>{record.startPage}–{record.endPage}쪽</span>
-                                {/* 서평 미리보기. 서평이 없으면 빈칸으로 둡니다. */}
-                                <span className="book-row-record-review">{record.review?.trim() ?? ""}</span>
-                                <span className="book-row-record-length">서평 {record.reviewLength}자</span>
-                                <Chip k={readingStatusChip(record.status)}>{readingStatusLabel(record.status)}</Chip>
-                              </Link>
-                            </li>
-                          ))}
-                        </ol>
-                        <Link to={`/library?book=${book.enrollmentBookId}`} className="inline-link">
-                          이 책 기록을 카드로 보기 <Icon n="arrow" s={15} />
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-          {!loading && !error && books.length === 0 && <li className="text-muted">조건에 맞는 도서가 없어요.</li>}
-          {loading && <li className="text-muted">내 서재를 불러오는 중이에요.</li>}
-        </ul>
+                  {open && (
+                    <div className="book-tile-records" id={`book-records-${book.enrollmentBookId}`}>
+                      <div className="book-tile-records-head">
+                        <h3 className="book-tile-records-title">독서기록 <small>{bookRecords.length}건</small></h3>
+                        {bookRecords.length > 1 && (
+                          <div className="book-tile-sort" role="group" aria-label="기록 순서">
+                            <button type="button" className={newestFirst ? "is-active" : ""} aria-pressed={newestFirst} onClick={() => setNewestFirst(true)}>최근 순</button>
+                            <button type="button" className={newestFirst ? "" : "is-active"} aria-pressed={!newestFirst} onClick={() => setNewestFirst(false)}>오래된 순</button>
+                          </div>
+                        )}
+                      </div>
+                      {recordsLoading ? (
+                        <p className="text-small text-muted">기록을 불러오는 중이에요.</p>
+                      ) : bookRecords.length === 0 ? (
+                        <p className="text-small text-muted">
+                          아직 이 책의 기록이 없어요. <Link to="/records/new" className="inline-link">기록 쓰기</Link>
+                        </p>
+                      ) : (
+                        <>
+                          {shown.map((record) => <BookRecordEntry key={record.readingLogId} record={record} />)}
+                          {bookRecords.length > PREVIEW_COUNT && (
+                            <button type="button" className="book-tile-more" onClick={() => setShowAll((value) => !value)} aria-expanded={showAll}>
+                              {showAll ? "처음 5건만 보기" : `전체 보기 (${bookRecords.length}건)`}
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
         <Link to="/search" className="inline-link">
           전체 기록 통합 검색
           <Icon n="arrow" s={16} sw={1.8} />
