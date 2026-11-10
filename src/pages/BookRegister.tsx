@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { IScannerControls } from "@zxing/browser";
 import UserLayout from "../components/UserLayout";
+import Cover from "../components/Cover";
+import { COVER_FALLBACK_CHAR } from "../constants/cover";
 import {
   BookApiError,
   lookupBookByIsbn,
@@ -307,6 +309,7 @@ export default function BookRegister() {
         totalPages: pageCount,
         ...(normalizedIsbn ? { isbn: normalizedIsbn } : {}),
         ...(selectedBook?.publisher ? { publisher: selectedBook.publisher } : {}),
+        coverUrl: selectedBook?.coverUrl ?? null,
         children: isChildrenBook,
         libraryOwned: bookType === "소장도서",
       });
@@ -472,9 +475,12 @@ export default function BookRegister() {
                       className={`book-result${isSelected ? " is-selected" : ""}`}
                       key={book.id}
                     >
-                      <div className="register-book-cover cover-yellow">
-                        {book.title.slice(0, 1)}
-                      </div>
+                      <Cover
+                        ch={book.title.slice(0, 1)}
+                        src={book.coverUrl}
+                        colorless
+                        className="register-book-cover cover-yellow"
+                      />
 
                       <div className="book-info">
                         <h3>{book.title}</h3>
@@ -527,9 +533,12 @@ export default function BookRegister() {
             </div>
 
             <div className="selected-book">
-              <div className="register-book-cover cover-yellow cover-large">
-                {title.trim().slice(0, 1) || "책"}
-              </div>
+              <Cover
+                ch={title.trim().slice(0, 1) || COVER_FALLBACK_CHAR}
+                src={selectedBook?.coverUrl}
+                colorless
+                className="register-book-cover cover-yellow cover-large"
+              />
               <p>표지는 검색 결과에서 선택하면 표시돼요.</p>
             </div>
 
