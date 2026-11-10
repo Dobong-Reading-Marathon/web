@@ -8,7 +8,8 @@ import Tower from "../components/Tower";
 import "./AdminReviews.css";
 
 type ReviewFilter = SubmissionStatus | "FEATURED";
-const demoAiScores = [18, 18, 48, 82, 35, 24];
+// AI 작성 의심 검사는 아직 개발 전이라 숨김. 기능이 생기면 아래 주석들을 풀고 예시 점수 대신 API 값을 쓴다.
+// const demoAiScores = [18, 18, 48, 82, 35, 24];
 const statusLabel: Record<SubmissionStatus, string> = { SUBMITTED: "대기", APPROVED: "승인", REVISION_REQUESTED: "보완요청" };
 const statusChip: Record<SubmissionStatus, "wait" | "ok" | "fix"> = { SUBMITTED: "wait", APPROVED: "ok", REVISION_REQUESTED: "fix" };
 
@@ -119,8 +120,9 @@ export default function AdminReviews() {
     return () => controller.abort();
   }, [list, visibleCount]);
   const selected = list.find((item) => item.id === selectedId) ?? list[0] ?? null;
-  const selectedIndex = selected ? Math.max(0, items.findIndex((item) => item.id === selected.id)) : 0;
-  const aiScore = demoAiScores[selectedIndex % demoAiScores.length];
+  // AI 검사 (개발 전)
+  // const selectedIndex = selected ? Math.max(0, items.findIndex((item) => item.id === selected.id)) : 0;
+  // const aiScore = demoAiScores[selectedIndex % demoAiScores.length];
 
   useEffect(() => {
     if (!selectedId) { setReviewRecord(null); return; }
@@ -175,7 +177,7 @@ export default function AdminReviews() {
         <div className="admin-review-filters">{([
           ["SUBMITTED", `심사 대기 ${statusCounts.submitted}`], ["APPROVED", `승인 ${statusCounts.approved}`], ["REVISION_REQUESTED", `보완요청 ${statusCounts.revision}`], ["FEATURED", "우수작"],
         ] as const).map(([value, label]) => <button type="button" key={value} className={filter === value ? "is-active" : ""} onClick={() => { setFilter(value); setSelectedId(null); }}>{label}</button>)}</div>
-        <div className="admin-review-list">{loading && <p className="admin-review-empty">접수함을 불러오는 중이에요…</p>}{!loading && list.slice(0, visibleCount).map((item) => { const originalIndex = Math.max(0, items.findIndex((entry) => entry.id === item.id)); const score = demoAiScores[originalIndex % demoAiScores.length]; const ai = score < 30 ? "AI 낮음" : score >= 70 ? "AI 높음" : "AI 보통"; const directLength = typeof item.reviewLength === "number" ? item.reviewLength : typeof item.review === "string" ? countReviewCharacters(item.review) : undefined; const length = directLength ?? reviewLengths[item.id]; const featured = featuredIds.has(item.id); return <button type="button" key={item.id} className={`admin-review-item${item.id === selected?.id ? " is-selected" : ""}`} onClick={() => setSelectedId(item.id)}><span className="admin-review-item-main"><b>{item.participantName} · {item.bookTitle}</b><small>{formatSubmitted(item.submittedAt)} · 서평 {length === undefined ? reviewLookupDone.has(item.id) ? "확인 불가" : "불러오는 중" : `${numberText(length)}자`}</small></span><span className="admin-review-item-badges">{featured && <Chip k="star">우수작 예시</Chip>}{item.status === "SUBMITTED" && <Chip k={score < 30 ? "ok" : score >= 70 ? "fix" : "wait"}>{ai}</Chip>}<Chip k={statusChip[item.status]}>{statusLabel[item.status]}</Chip></span></button>; })}{!loading && list.length === 0 && <p className="admin-review-empty">표시할 기록이 없습니다.</p>}</div>
+        <div className="admin-review-list">{loading && <p className="admin-review-empty">접수함을 불러오는 중이에요…</p>}{!loading && list.slice(0, visibleCount).map((item) => { /* AI 검사 (개발 전): const originalIndex = Math.max(0, items.findIndex((entry) => entry.id === item.id)); const score = demoAiScores[originalIndex % demoAiScores.length]; const ai = score < 30 ? "AI 낮음" : score >= 70 ? "AI 높음" : "AI 보통"; */ const directLength = typeof item.reviewLength === "number" ? item.reviewLength : typeof item.review === "string" ? countReviewCharacters(item.review) : undefined; const length = directLength ?? reviewLengths[item.id]; const featured = featuredIds.has(item.id); return <button type="button" key={item.id} className={`admin-review-item${item.id === selected?.id ? " is-selected" : ""}`} onClick={() => setSelectedId(item.id)}><span className="admin-review-item-main"><b>{item.participantName} · {item.bookTitle}</b><small>{formatSubmitted(item.submittedAt)} · 서평 {length === undefined ? reviewLookupDone.has(item.id) ? "확인 불가" : "불러오는 중" : `${numberText(length)}자`}</small></span><span className="admin-review-item-badges">{featured && <Chip k="star">우수작 예시</Chip>}{/* AI 검사 (개발 전): {item.status === "SUBMITTED" && <Chip k={score < 30 ? "ok" : score >= 70 ? "fix" : "wait"}>{ai}</Chip>} */}<Chip k={statusChip[item.status]}>{statusLabel[item.status]}</Chip></span></button>; })}{!loading && list.length === 0 && <p className="admin-review-empty">표시할 기록이 없습니다.</p>}</div>
         <footer><span>{numberText(list.length)}건 중 {numberText(Math.min(visibleCount, list.length))}건 표시{filter === "FEATURED" && " · 우수작은 시안용 예시"}</span>{list.length > visibleCount && <button type="button" className="admin-review-more" onClick={() => setVisibleCount((count) => count + 6)}>더 보기</button>}</footer>
       </article>
       <article className="admin-review-detail">
@@ -184,7 +186,7 @@ export default function AdminReviews() {
           <p className="admin-review-meta">{selected.participantName} · {reviewRecord?.book.author ?? "저자 정보"} · 읽은 쪽 {numberText(reviewRecord?.log.startPage ?? selected.startPage)}–{numberText(reviewRecord?.log.endPage ?? selected.endPage)} · 읽은 날짜 {reviewRecord?.log.readDate ?? selected.readDate} · 제출 {formatSubmitted(selected.submittedAt)}</p>
           <div className="admin-review-section"><h3>마음에 드는 글귀</h3><p>{reviewRecord?.log.quote || "[등록된 글귀가 없습니다.]"}</p></div>
           <div className="admin-review-section"><div className="admin-review-section-heading"><h3>서평</h3><b>{displayReviewLength === undefined ? reviewLookupDone.has(selected.id) ? "글자 수 확인 불가" : "글자 수 확인 중" : `${numberText(displayReviewLength)}자 · 500자 ${displayReviewLength >= 500 ? "충족" : "미달"}`}</b></div><p className="admin-review-body">{displayReview ?? (reviewLookupDone.has(selected.id) ? "서평 본문을 불러오지 못했습니다." : "서평 본문을 불러오는 중이에요…")}</p></div>
-          <section className="admin-ai-review"><header><b>서평 AI 검사</b><Chip k="info">AI 작성 가능성 낮음 · {aiScore}% · 예시</Chip></header><div className="admin-ai-track"><i style={{ width: `${aiScore}%` }} /></div><p>AI 판정 API가 없어 화면 예시 점수를 표시합니다. 승인과 보완요청은 사서가 직접 결정해요.</p></section>
+          {/* AI 검사 (개발 전): <section className="admin-ai-review"><header><b>서평 AI 검사</b><Chip k="info">AI 작성 가능성 낮음 · {aiScore}% · 예시</Chip></header><div className="admin-ai-track"><i style={{ width: `${aiScore}%` }} /></div><p>AI 판정 API가 없어 화면 예시 점수를 표시합니다. 승인과 보완요청은 사서가 직접 결정해요.</p></section> */}
           <label className="admin-revision-label">사서 코멘트 <small>보완요청 때는 사유를 적어 주세요</small><textarea value={comment} onChange={(event) => setComment(event.target.value)} maxLength={1000} /></label>
           <div className="admin-review-actions">{selected.status === "SUBMITTED" ? <><button type="button" className="admin-review-action approve" disabled={busy} onClick={() => void runAction("approve")}>승인</button><button type="button" className="admin-review-action revision" disabled={busy} onClick={() => void runAction("revision")}>보완요청 (반려)</button></> : selected.status === "APPROVED" ? <button type="button" className="admin-review-action revision" disabled={busy} onClick={() => void runAction("cancel")}>승인 취소 (대기로 되돌리기)</button> : <p>보완요청 상태는 기록 목록에서 확인할 수 있어요.</p>}</div>
           <p className="admin-review-footnote">승인하면 참가자의 누적 쪽수·권수·서평에 반영되고 알림이 가요. 승인한 기록도 ‘승인 취소’로 대기 상태로 되돌릴 수 있어요.</p>
